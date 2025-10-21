@@ -1,0 +1,107 @@
+version: '3.8'
+
+# ⚠️ DOCKER IS OPTIONAL - You don't need this file!
+#
+# This project works perfectly WITHOUT Docker.
+# Just run: pnpm install && pnpm dev
+#
+# This docker-compose.yml is only for:
+# - Optional local Whisper STT service (not recommended, use AssemblyAI instead)
+# - Optional local llama.cpp LLM (not recommended, use Groq instead)
+# - Production containerized deployment (optional)
+#
+# See NO_DOCKER_NEEDED.md for details.
+
+services:
+  # Main backend service
+  backend:
+    build:
+      context: ./apps/backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=production
+      - PORT=4000
+      # Adapter configuration
+      - STT_PROVIDER=${STT_PROVIDER:-assemblyai}
+      - TTS_PROVIDER=${TTS_PROVIDER:-google}
+      - GUEST_PROVIDER=${GUEST_PROVIDER:-groq}
+      # API Keys
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY}
+      - ASSEMBLYAI_API_KEY=${ASSEMBLYAI_API_KEY}
+      - GROQ_API_KEY=${GROQ_API_KEY}
+      - TOGETHER_API_KEY=${TOGETHER_API_KEY}
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - GOOGLE_APPLICATION_CREDENTIALS=/app/credentials/google-credentials.json
+      # Local service endpoints
+      - WHISPER_ENDPOINT=http://whisper-service:8001/transcribe
+      - LOCAL_LLAMA_ENDPOINT=http://llama-service:8080/v1
+    volumes:
+      - ./recordings:/app/recordings
+      - ./briefings:/app/briefings
+      - ./google-credentials.json:/app/credentials/google-credentials.json:ro
+    depends_on:
+      - whisper-service
+    networks:
+      - voice-studio
+
+  # Frontend service
+  frontend:
+    build:
+      context: ./apps/frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+    depends_on:
+      - backend
+    networks:
+      - voice-studio
+
+  # Optional: Local faster-whisper service for STT
+  whisper-service:
+    image: python:3.11-slim
+    command: >
+      bash -c "
+        pip install faster-whisper fastapi uvicorn &&
+        python /app/whisper-server.py
+      "
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./services/whisper-server.py:/app/whisper-server.py
+      - ./models:/app/models
+    environment:
+      - MODEL_SIZE=base
+      - DEVICE=cpu
+    networks:
+      - voice-studio
+    profiles:
+      - local-stt
+
+  # Optional: Local llama.cpp service for guest LLM
+  llama-service:
+    image: ghcr.io/ggerganov/llama.cpp:server
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./models:/models
+    command: >
+      --model /models/llama-3-70b.gguf
+      --host 0.0.0.0
+      --port 8080
+      --ctx-size 4096
+    networks:
+      - voice-studio
+    profiles:
+      - local-llm
+
+networks:
+  voice-studio:
+    driver: bridge
+
+volumes:
+  recordings:
+  models:

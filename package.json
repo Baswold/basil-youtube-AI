@@ -1,0 +1,16 @@
+{
+  "name": "basil-youtube-thing",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "dev": "pnpm -r --parallel --filter frontend --filter basil-backend dev",
+    "dev:frontend": "pnpm --filter frontend dev",
+    "dev:backend": "pnpm --filter basil-backend dev",
+    "build": "pnpm -r --parallel build",
+    "lint": "pnpm -r --parallel lint",
+    "typecheck": "pnpm -r --parallel exec tsc --noEmit",
+    "test": "pnpm -r --parallel test",
+    "format": "prettier --write .",
+    "format:check": "prettier --check ."
+  }
+}

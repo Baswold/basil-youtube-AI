@@ -1,0 +1,25 @@
+{
+  "name": "@basil/shared",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p .",
+    "clean": "rimraf dist",
+    "prepublishOnly": "pnpm run clean && pnpm run build"
+  },
+  "exports": {
+    "./*": {
+      "types": "./dist/*.d.ts",
+      "import": "./dist/*.js"
+    },
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "devDependencies": {
+    "rimraf": "^6.0.1",
+    "typescript": "^5.9.3"
+  }
+}

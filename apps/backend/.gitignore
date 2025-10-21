@@ -1,0 +1,40 @@
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# Recordings and logs
+recordings/
+*.log
+*.jsonl
+
+# Build output
+dist/
+*.tsbuildinfo
+
+# Dependencies
+node_modules/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Google Cloud credentials
+*-credentials.json
+service-account*.json
+
+# Piper models (large files)
+models/*.onnx
+models/*.onnx.json
+
+# Temporary files
+tmp/
+temp/
+*.tmp
