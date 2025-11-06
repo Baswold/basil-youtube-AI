@@ -95,6 +95,14 @@ export function createTogetherAdapter(apiKey: string, model = "meta-llama/Llama-
   });
 }
 
+export function createGrokAdapter(apiKey: string, model = "grok-beta"): OpenAICompatibleAdapter {
+  return new OpenAICompatibleAdapter("grok", {
+    apiKey,
+    baseUrl: "https://api.x.ai/v1",
+    model,
+  });
+}
+
 export function createLocalLlamaAdapter(baseUrl = "http://localhost:8080/v1", model = "local-model"): OpenAICompatibleAdapter {
   return new OpenAICompatibleAdapter("local", {
     apiKey: "not-needed",

@@ -116,6 +116,7 @@ describe("EventLogger", () => {
     const sessionId = "session-1";
     
     logger.logTtsStart(sessionId, "claude", "Hello");
+    logger.logTtsChunk(sessionId, "claude", 2048);
     logger.logTtsComplete(sessionId, "claude");
     
     await logger.stop();
@@ -127,7 +128,9 @@ describe("EventLogger", () => {
     const events = lines.map(line => JSON.parse(line));
     expect(events[0].type).toBe("tts.start");
     expect(events[0].text).toBe("Hello");
-    expect(events[1].type).toBe("tts.complete");
+    expect(events[1].type).toBe("tts.chunk");
+    expect(events[1].audioSize).toBe(2048);
+    expect(events[2].type).toBe("tts.complete");
   });
 
   it("should log orb state changes", async () => {
@@ -186,6 +189,28 @@ describe("EventLogger", () => {
     expect(event.type).toBe("barge-in");
     expect(event.interrupter).toBe("you");
     expect(event.interrupted).toEqual(["claude", "guest"]);
+  });
+
+  it("should log command routing events", async () => {
+    logger.logCommandRoute("session-1", {
+      raw: "Claude, take thinking mode",
+      normalized: "claude, take thinking mode",
+      targets: ["claude"],
+      remainder: "take thinking mode",
+      action: "thinking",
+      confidence: 0.8,
+      durationMs: 30000,
+    });
+
+    await logger.stop();
+
+    const filePath = path.join(testOutputDir, testEpisodeId, "events.jsonl");
+    const content = await fs.readFile(filePath, "utf-8");
+    const event = JSON.parse(content.trim());
+
+    expect(event.type).toBe("command.route");
+    expect(event.targets).toEqual(["claude"]);
+    expect(event.durationMs).toBe(30000);
   });
 
   it("should log error events with stack traces", async () => {

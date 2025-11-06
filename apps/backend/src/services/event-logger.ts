@@ -1,6 +1,7 @@
 import { createWriteStream, WriteStream } from "node:fs";
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
+import type { CommandRouteResult } from "./command-router";
 
 export type EventType =
   | "session.start"
@@ -20,6 +21,7 @@ export type EventType =
   | "mode.normal"
   | "autopilot.toggle"
   | "barge-in"
+  | "command.route"
   | "error";
 
 interface BaseEvent {
@@ -67,6 +69,15 @@ export interface TtsEvent extends BaseEvent {
   audioSize?: number;
 }
 
+export interface CommandRouteEvent extends BaseEvent {
+  type: "command.route";
+  action: string;
+  targets: string[];
+  remainder: string;
+  confidence: number;
+  durationMs?: number;
+}
+
 export interface OrbStateChangeEvent extends BaseEvent {
   type: "orb.state-change";
   speaker: string;
@@ -109,6 +120,7 @@ export type LogEvent =
   | ModeEvent
   | AutopilotEvent
   | BargeInEvent
+  | CommandRouteEvent
   | ErrorEvent;
 
 interface EventLoggerConfig {
@@ -257,6 +269,15 @@ export class EventLogger {
     } as Omit<TtsEvent, "timestamp">);
   }
 
+  logTtsChunk(sessionId: string, speaker: string, size: number): void {
+    this.log({
+      type: "tts.chunk",
+      sessionId,
+      speaker,
+      audioSize: size,
+    } as Omit<TtsEvent, "timestamp">);
+  }
+
   logOrbStateChange(sessionId: string, speaker: string, oldState: string, newState: string): void {
     this.log({
       type: "orb.state-change",
@@ -291,6 +312,18 @@ export class EventLogger {
       interrupter,
       interrupted,
     } as Omit<BargeInEvent, "timestamp">);
+  }
+
+  logCommandRoute(sessionId: string, command: CommandRouteResult): void {
+    this.log({
+      type: "command.route",
+      sessionId,
+      action: command.action,
+      targets: command.targets,
+      remainder: command.remainder,
+      confidence: command.confidence,
+      durationMs: command.durationMs,
+    } as Omit<CommandRouteEvent, "timestamp">);
   }
 
   logError(sessionId: string, error: Error, context?: Record<string, any>): void {

@@ -14,13 +14,14 @@ interface AppConfig {
   
   // Adapters
   sttProvider: "assemblyai" | "google" | "whisper";
-  ttsProvider: "google" | "piper";
-  guestProvider: "groq" | "together" | "local" | "openai";
+  ttsProvider: "google" | "coqui";
+  guestProvider: "groq" | "grok" | "together" | "local" | "openai";
 
   // API Keys
   anthropicApiKey?: string;
   assemblyaiApiKey?: string;
   groqApiKey?: string;
+  grokApiKey?: string;
   togetherApiKey?: string;
   openaiApiKey?: string;
   googleCredentials?: string;
@@ -28,10 +29,6 @@ interface AppConfig {
   // Service Endpoints
   whisperEndpoint: string;
   localLlamaEndpoint: string;
-
-  // Piper Configuration
-  piperPath: string;
-  piperModelPath?: string;
 
   // Guest Model
   guestModel?: string;
@@ -64,13 +61,14 @@ export const appConfig: AppConfig = {
 
   // Adapters
   sttProvider: (process.env.STT_PROVIDER as any) || "assemblyai",
-  ttsProvider: (process.env.TTS_PROVIDER as any) || "google",
+  ttsProvider: (process.env.TTS_PROVIDER as any) || "coqui",
   guestProvider: (process.env.GUEST_PROVIDER as any) || "groq",
 
   // API Keys
   anthropicApiKey: getOptionalEnv("ANTHROPIC_API_KEY"),
   assemblyaiApiKey: getOptionalEnv("ASSEMBLYAI_API_KEY"),
   groqApiKey: getOptionalEnv("GROQ_API_KEY"),
+  grokApiKey: getOptionalEnv("GROK_API_KEY"),
   togetherApiKey: getOptionalEnv("TOGETHER_API_KEY"),
   openaiApiKey: getOptionalEnv("OPENAI_API_KEY"),
   googleCredentials: getOptionalEnv("GOOGLE_APPLICATION_CREDENTIALS"),
@@ -78,10 +76,6 @@ export const appConfig: AppConfig = {
   // Service Endpoints
   whisperEndpoint: process.env.WHISPER_ENDPOINT || "http://localhost:8001/transcribe",
   localLlamaEndpoint: process.env.LOCAL_LLAMA_ENDPOINT || "http://localhost:8080/v1",
-
-  // Piper
-  piperPath: process.env.PIPER_PATH || "piper",
-  piperModelPath: getOptionalEnv("PIPER_MODEL_PATH"),
 
   // Guest Model
   guestModel: getOptionalEnv("GUEST_MODEL"),
@@ -109,6 +103,8 @@ export function validateConfig(): void {
     // Guest LLM validation
     if (appConfig.guestProvider === "groq" && !appConfig.groqApiKey) {
       errors.push("GROQ_API_KEY is required for Groq guest LLM");
+    } else if (appConfig.guestProvider === "grok" && !appConfig.grokApiKey) {
+      errors.push("GROK_API_KEY is required for Grok guest LLM");
     } else if (appConfig.guestProvider === "together" && !appConfig.togetherApiKey) {
       errors.push("TOGETHER_API_KEY is required for Together.ai guest LLM");
     } else if (appConfig.guestProvider === "openai" && !appConfig.openaiApiKey) {

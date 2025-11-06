@@ -7,4 +7,4 @@ export * from "./stt-assemblyai";
 export * from "./stt-google";
 export * from "./stt-whisper";
 export * from "./tts-google";
-export * from "./tts-piper";
+export * from "./tts-coqui";

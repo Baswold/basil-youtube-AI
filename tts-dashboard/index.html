@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Piper TTS Voice Tester</title>
+    <style>
+        body {
+            font-family: system-ui, -apple-system, sans-serif;
+            max-width: 800px;
+            margin: 40px auto;
+            padding: 20px;
+            color: #333;
+        }
+
+        h1 {
+            font-size: 24px;
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            font-size: 18px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+
+        textarea, input[type="number"], select {
+            width: 100%;
+            padding: 10px;
+            border: 1px solid #ddd;
+            font-family: inherit;
+            font-size: 14px;
+        }
+
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        textarea:focus, input:focus, select:focus {
+            outline: none;
+            border-color: #333;
+        }
+
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        button {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 14px;
+        }
+
+        button:hover:not(:disabled) {
+            background: #f5f5f5;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #555;
+        }
+
+        .status {
+            padding: 10px;
+            margin-bottom: 20px;
+            border-left: 3px solid #ddd;
+            font-size: 14px;
+            display: none;
+        }
+
+        .status.info {
+            display: block;
+            background: #f0f0f0;
+            border-left-color: #333;
+            color: #333;
+        }
+
+        .status.success {
+            display: block;
+            background: #f0f8f0;
+            border-left-color: #2a8a2a;
+            color: #2a8a2a;
+        }
+
+        .status.error {
+            display: block;
+            background: #f8f0f0;
+            border-left-color: #aa2a2a;
+            color: #aa2a2a;
+        }
+
+        .audio-player {
+            display: none;
+            margin-bottom: 20px;
+        }
+
+        .audio-player.active {
+            display: block;
+        }
+
+        audio {
+            width: 100%;
+        }
+
+        .history-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .history-item {
+            border: 1px solid #ddd;
+            padding: 10px;
+            margin-bottom: 10px;
+            background: white;
+        }
+
+        .history-item-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+
+        .speaker-id {
+            font-weight: 500;
+            font-size: 16px;
+        }
+
+        .history-actions {
+            display: flex;
+            gap: 5px;
+        }
+
+        .btn-small {
+            padding: 4px 8px;
+            font-size: 12px;
+            flex: none;
+        }
+
+        .comment-input {
+            width: 100%;
+            padding: 6px;
+            border: 1px solid #ddd;
+            font-size: 13px;
+            margin-top: 5px;
+        }
+
+        .comment-text {
+            color: #666;
+            font-size: 13px;
+            font-style: italic;
+            margin-top: 5px;
+        }
+
+        .empty-state {
+            text-align: center;
+            color: #999;
+            padding: 40px 20px;
+            font-size: 14px;
+        }
+
+        .voice-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .voice-tile {
+            border: 1px solid #ddd;
+            padding: 12px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .voice-tile:hover {
+            border-color: #333;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .voice-tile.playing {
+            border-color: #2a8a2a;
+            background: #f0f8f0;
+        }
+
+        .voice-tile-header {
+            font-weight: 500;
+            font-size: 14px;
+            margin-bottom: 8px;
+        }
+
+        .voice-tile-meta {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            min-height: 36px;
+        }
+
+        .voice-tile-stats {
+            font-size: 11px;
+            color: #999;
+            margin-bottom: 8px;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+        }
+
+        .voice-stat {
+            background: #f5f5f5;
+            padding: 2px 6px;
+            border-radius: 3px;
+        }
+
+        .voice-tile-actions {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 5px;
+        }
+
+        .voice-tile-btn {
+            padding: 6px;
+            font-size: 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+
+        .voice-tile-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .voice-tile-btn.full-width {
+            grid-column: 1 / -1;
+        }
+
+        .pagination {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin: 20px 0;
+            align-items: center;
+        }
+
+        .pagination button {
+            padding: 8px 12px;
+            font-size: 14px;
+        }
+
+        .page-info {
+            font-size: 14px;
+            color: #666;
+        }
+
+        .filters {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .filter-btn {
+            padding: 6px 12px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .filter-btn.active {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .gender-tags {
+            display: flex;
+            gap: 3px;
+            margin-top: 5px;
+        }
+
+        .gender-tag-btn {
+            flex: 1;
+            padding: 3px 6px;
+            font-size: 10px;
+            border: 1px solid #ddd;
+            background: white;
+            cursor: pointer;
+        }
+
+        .gender-tag-btn:hover {
+            background: #f5f5f5;
+        }
+
+        .gender-tag-btn.selected {
+            background: #333;
+            color: white;
+            border-color: #333;
+        }
+
+        .gender-badge {
+            background: #e3f2fd;
+            color: #1565c0;
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-weight: 500;
+        }
+
+        .gender-badge.male {
+            background: #e3f2fd;
+            color: #1565c0;
+        }
+
+        .gender-badge.female {
+            background: #fce4ec;
+            color: #c2185b;
+        }
+
+        .gender-badge.other {
+            background: #f3e5f5;
+            color: #7b1fa2;
+        }
+    </style>
+</head>
+<body>
+    <h1>Piper TTS Voice Tester</h1>
+    <p class="subtitle">Test 900+ voices with multi-speaker model</p>
+
+    <form id="ttsForm">
+        <div class="form-group">
+            <label for="textInput">Text to Synthesize</label>
+            <textarea id="textInput" placeholder="Enter text to hear..." required>Hello! This is a test of the Piper text-to-speech engine.</textarea>
+        </div>
+
+        <div class="form-group">
+            <label for="speakerSelect">Select Speaker</label>
+            <select id="speakerSelect" size="8" style="height: auto;">
+                <option value="0">Speaker 0</option>
+                <option value="5">Speaker 5</option>
+                <option value="10">Speaker 10</option>
+                <option value="15">Speaker 15</option>
+                <option value="25">Speaker 25</option>
+                <option value="35">Speaker 35</option>
+                <option value="45">Speaker 45</option>
+                <option value="55">Speaker 55</option>
+                <option value="65">Speaker 65</option>
+                <option value="75">Speaker 75</option>
+                <option value="85">Speaker 85</option>
+                <option value="95">Speaker 95</option>
+                <option value="105">Speaker 105</option>
+                <option value="115">Speaker 115</option>
+                <option value="125">Speaker 125</option>
+                <option value="150">Speaker 150</option>
+                <option value="175">Speaker 175</option>
+                <option value="200">Speaker 200</option>
+                <option value="225">Speaker 225</option>
+                <option value="250">Speaker 250</option>
+                <option value="275">Speaker 275</option>
+                <option value="300">Speaker 300</option>
+                <option value="325">Speaker 325</option>
+                <option value="350">Speaker 350</option>
+                <option value="375">Speaker 375</option>
+                <option value="400">Speaker 400</option>
+                <option value="425">Speaker 425</option>
+                <option value="450">Speaker 450</option>
+                <option value="475">Speaker 475</option>
+                <option value="500">Speaker 500</option>
+                <option value="525">Speaker 525</option>
+                <option value="550">Speaker 550</option>
+                <option value="575">Speaker 575</option>
+                <option value="600">Speaker 600</option>
+                <option value="625">Speaker 625</option>
+                <option value="650">Speaker 650</option>
+                <option value="675">Speaker 675</option>
+                <option value="700">Speaker 700</option>
+                <option value="725">Speaker 725</option>
+                <option value="750">Speaker 750</option>
+                <option value="775">Speaker 775</option>
+                <option value="800">Speaker 800</option>
+                <option value="825">Speaker 825</option>
+                <option value="850">Speaker 850</option>
+                <option value="875">Speaker 875</option>
+                <option value="900">Speaker 900</option>
+                <option value="custom">Custom...</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="customSpeakerGroup" style="display: none;">
+            <label for="speakerInput">Custom Speaker ID (0-903)</label>
+            <input type="number" id="speakerInput" min="0" max="903" value="0">
+        </div>
+
+        <div class="action-buttons">
+            <button type="submit" class="btn-primary" id="synthesizeBtn">Synthesize</button>
+            <button type="button" id="stopBtn" disabled>Stop</button>
+        </div>
+    </form>
+
+    <div id="status" class="status"></div>
+
+    <div id="audioPlayer" class="audio-player">
+        <label>Audio Output</label>
+        <audio id="audioOutput" controls></audio>
+    </div>
+
+    <h2>Tried Voices</h2>
+    <ul id="historyList" class="history-list">
+        <li class="empty-state">No voices tried yet. Synthesize a voice to add it to your history!</li>
+    </ul>
+
+    <h2>Voice Browser</h2>
+    <p class="subtitle" id="browserSubtitle">Browse and test all 109 voices • Using Coqui TTS with VCTK dataset (109 British speakers)</p>
+    <p class="subtitle" style="font-size: 12px; color: #999; margin-top: -15px;">
+        Gender badges with • are from VCTK metadata • Click gender buttons to tag/override
+    </p>
+
+    <div class="filters">
+        <button class="filter-btn active" data-filter="all">All Voices</button>
+        <button class="filter-btn" data-filter="favorites">Favorites</button>
+        <button class="filter-btn" data-filter="tested">Tested</button>
+        <button class="filter-btn" data-filter="male">Male</button>
+        <button class="filter-btn" data-filter="female">Female</button>
+        <button class="filter-btn" data-filter="other">Other</button>
+        <button class="filter-btn" data-filter="english">🇬🇧 English</button>
+        <button class="filter-btn" data-filter="irish">🇮🇪 Irish</button>
+        <button class="filter-btn" data-filter="scottish">🏴󠁧󠁢󠁳󠁣󠁴󠁿 Scottish</button>
+        <button class="filter-btn" data-filter="welsh">🏴󠁧󠁢󠁷󠁬󠁳󠁿 Welsh</button>
+        <button class="filter-btn" data-filter="canadian">🇨🇦 Canadian</button>
+        <button class="filter-btn" data-filter="american">🇺🇸 American</button>
+    </div>
+
+    <div class="pagination">
+        <button onclick="changePage(-1)">Previous</button>
+        <span class="page-info" id="pageInfo">Page 1 of 23</span>
+        <button onclick="changePage(1)">Next</button>
+    </div>
+
+    <div id="voiceGallery" class="voice-gallery"></div>
+
+    <div class="pagination">
+        <button onclick="changePage(-1)">Previous</button>
+        <span class="page-info" id="pageInfo2">Page 1 of 23</span>
+        <button onclick="changePage(1)">Next</button>
+    </div>
+
+    <script>
+        const form = document.getElementById('ttsForm');
+        const textInput = document.getElementById('textInput');
+        const speakerSelect = document.getElementById('speakerSelect');
+        const speakerInput = document.getElementById('speakerInput');
+        const customSpeakerGroup = document.getElementById('customSpeakerGroup');
+        const synthesizeBtn = document.getElementById('synthesizeBtn');
+        const stopBtn = document.getElementById('stopBtn');
+        const statusDiv = document.getElementById('status');
+        const audioPlayer = document.getElementById('audioPlayer');
+        const audioOutput = document.getElementById('audioOutput');
+        const historyList = document.getElementById('historyList');
+
+        let abortController = null;
+        let history = JSON.parse(localStorage.getItem('ttsHistory') || '[]');
+
+        // Voice browser state
+        const VOICES_PER_PAGE = 40;
+        const TOTAL_VOICES = 109;
+        let currentPage = 1;
+        let currentFilter = 'all';
+        let favorites = JSON.parse(localStorage.getItem('favorites') || '[]');
+        let genderTags = JSON.parse(localStorage.getItem('genderTags') || '{}');
+        let speakerMetadata = {}; // Will be loaded from speaker-metadata.json
+        let currentlyPlaying = null;
+        const testPhrase = "Hello, this is a voice sample from the Coqui TTS system with VCTK dataset.";
+
+        // Load speaker metadata on page load
+        async function loadSpeakerMetadata() {
+            try {
+                const response = await fetch('/speaker-metadata.json');
+                if (response.ok) {
+                    speakerMetadata = await response.json();
+                    const count = Object.keys(speakerMetadata).length;
+                    
+                    // Count genders
+                    const genderCounts = Object.values(speakerMetadata).reduce((acc, speaker) => {
+                        acc[speaker.gender] = (acc[speaker.gender] || 0) + 1;
+                        return acc;
+                    }, {});
+                    
+                    console.log(`✅ Loaded metadata for ${count} speakers`);
+                    console.log(`   Male: ${genderCounts.male || 0}, Female: ${genderCounts.female || 0}`);
+                    
+                    // Count accents
+                    const accentCounts = Object.values(speakerMetadata).reduce((acc, speaker) => {
+                        if (speaker.accent) {
+                            acc[speaker.accent] = (acc[speaker.accent] || 0) + 1;
+                        }
+                        return acc;
+                    }, {});
+                    
+                    console.log(`   Accents: English: ${accentCounts.english || 0}, Irish: ${accentCounts.irish || 0}, Scottish: ${accentCounts.scottish || 0}, Welsh: ${accentCounts.welsh || 0}, Canadian: ${accentCounts.canadian || 0}, American: ${accentCounts.american || 0}`);
+                    
+                    // Update subtitle
+                    const subtitle = document.getElementById('browserSubtitle');
+                    if (subtitle) {
+                        const nonAmerican = (accentCounts.english || 0) + (accentCounts.irish || 0) + (accentCounts.scottish || 0) + (accentCounts.welsh || 0) + (accentCounts.canadian || 0);
+                        subtitle.textContent = `Browse and test all 109 voices • Using Coqui TTS with VCTK dataset • ${genderCounts.male || 0} male, ${genderCounts.female || 0} female • 🇬🇧 ${nonAmerican} British/Canadian voices`;
+                    }
+                    
+                    renderVoiceGallery(); // Re-render with metadata
+                } else {
+                    console.warn('Speaker metadata file not found, using manual tagging only');
+                }
+            } catch (error) {
+                console.warn('Failed to load speaker metadata:', error);
+            }
+        }
+
+        // Call on page load
+        loadSpeakerMetadata();
+
+        // Show/hide custom speaker input
+        speakerSelect.addEventListener('change', () => {
+            if (speakerSelect.value === 'custom') {
+                customSpeakerGroup.style.display = 'block';
+            } else {
+                customSpeakerGroup.style.display = 'none';
+            }
+        });
+
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            await synthesizeSpeech();
+        });
+
+        stopBtn.addEventListener('click', () => {
+            if (abortController) {
+                abortController.abort();
+                showStatus('Synthesis cancelled', 'info');
+                synthesizeBtn.disabled = false;
+                stopBtn.disabled = true;
+            }
+        });
+
+        async function synthesizeSpeech() {
+            const text = textInput.value.trim();
+            const speaker = speakerSelect.value === 'custom'
+                ? parseInt(speakerInput.value, 10)
+                : parseInt(speakerSelect.value, 10);
+
+            if (!text) {
+                showStatus('Please enter some text', 'error');
+                return;
+            }
+
+            if (isNaN(speaker) || speaker < 0 || speaker > 108) {
+                showStatus('Speaker ID must be between 0 and 108', 'error');
+                return;
+            }
+
+            synthesizeBtn.disabled = true;
+            stopBtn.disabled = false;
+            abortController = new AbortController();
+
+            showStatus(`Synthesizing with speaker ${speaker}...`, 'info');
+
+            try {
+                const response = await fetch('http://localhost:4000/api/tts/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text, speaker }),
+                    signal: abortController.signal,
+                });
+
+                if (!response.ok) {
+                    const error = await response.json();
+                    throw new Error(error.error || `HTTP ${response.status}`);
+                }
+
+                const audioBlob = await response.blob();
+                const audioUrl = URL.createObjectURL(audioBlob);
+
+                // Use the audioOutput element for playback
+                audioOutput.src = audioUrl;
+                audioOutput.style.display = 'block';
+
+                // Handle playback end
+                audioOutput.onended = () => {
+                    URL.revokeObjectURL(audioUrl); // Clean up blob URL
+                    audioOutput.style.display = 'none';
+                };
+
+                showStatus(`Complete - Speaker ${speaker}`, 'success');
+
+                // Add to history
+                addToHistory(speaker);
+            } catch (error) {
+                if (error.name !== 'AbortError') {
+                    console.error('Error:', error);
+                    showStatus(`Error: ${error.message}`, 'error');
+                }
+            } finally {
+                synthesizeBtn.disabled = false;
+                stopBtn.disabled = true;
+                abortController = null;
+            }
+        }
+
+        function addToHistory(speaker) {
+            const existing = history.find(h => h.speaker === speaker);
+            if (!existing) {
+                history.unshift({ speaker, comment: '', timestamp: Date.now() });
+                saveHistory();
+                renderHistory();
+                renderVoiceGallery(); // Update gallery to show as tested
+            }
+        }
+
+        function saveHistory() {
+            localStorage.setItem('ttsHistory', JSON.stringify(history));
+        }
+
+        function renderHistory() {
+            if (history.length === 0) {
+                historyList.innerHTML = '<li class="empty-state">No voices tried yet. Synthesize a voice to add it to your history!</li>';
+                return;
+            }
+
+            historyList.innerHTML = history.map((item, index) => `
+                <li class="history-item">
+                    <div class="history-item-header">
+                        <span class="speaker-id">Speaker ${item.speaker}</span>
+                        <div class="history-actions">
+                            <button type="button" class="btn-small" onclick="useSpeaker(${item.speaker})">Use</button>
+                            <button type="button" class="btn-small" onclick="removeFromHistory(${index})">Remove</button>
+                        </div>
+                    </div>
+                    ${item.comment ? `<div class="comment-text">"${item.comment}"</div>` : ''}
+                    <input type="text" class="comment-input" placeholder="Add a note..." value="${item.comment || ''}" onchange="updateComment(${index}, this.value)">
+                </li>
+            `).join('');
+        }
+
+        function useSpeaker(speaker) {
+            // Set custom speaker
+            speakerSelect.value = 'custom';
+            speakerInput.value = speaker;
+            customSpeakerGroup.style.display = 'block';
+
+            // Scroll to top
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        function updateComment(index, comment) {
+            history[index].comment = comment;
+            saveHistory();
+            renderHistory();
+            renderVoiceGallery(); // Update gallery to show new metadata
+        }
+
+        function removeFromHistory(index) {
+            history.splice(index, 1);
+            saveHistory();
+            renderHistory();
+        }
+
+        function showStatus(message, type) {
+            statusDiv.textContent = message;
+            statusDiv.className = `status ${type}`;
+        }
+
+        // Voice Browser Functions
+        function getVoiceMetadata(speaker) {
+            const historyItem = history.find(h => h.speaker === speaker);
+            return historyItem?.comment || '';
+        }
+
+        function isFavorite(speaker) {
+            return favorites.includes(speaker);
+        }
+
+        function toggleFavorite(speaker) {
+            const index = favorites.indexOf(speaker);
+            if (index > -1) {
+                favorites.splice(index, 1);
+            } else {
+                favorites.push(speaker);
+            }
+            localStorage.setItem('favorites', JSON.stringify(favorites));
+            renderVoiceGallery();
+        }
+
+        function setGender(speaker, gender) {
+            if (gender === null) {
+                delete genderTags[speaker];
+            } else {
+                genderTags[speaker] = gender;
+            }
+            localStorage.setItem('genderTags', JSON.stringify(genderTags));
+            renderVoiceGallery();
+        }
+
+        function getGender(speaker) {
+            // Manual tags override metadata
+            if (genderTags[speaker]) {
+                return genderTags[speaker];
+            }
+            // Fall back to loaded metadata
+            if (speakerMetadata[speaker]) {
+                return speakerMetadata[speaker].gender;
+            }
+            return null;
+        }
+
+        function getAccent(speaker) {
+            if (speakerMetadata[speaker]) {
+                return speakerMetadata[speaker].accent;
+            }
+            return null;
+        }
+
+        function getFilteredVoices() {
+            let voices = Array.from({ length: TOTAL_VOICES }, (_, i) => i);
+
+            if (currentFilter === 'favorites') {
+                voices = voices.filter(v => favorites.includes(v));
+            } else if (currentFilter === 'tested') {
+                voices = voices.filter(v => history.some(h => h.speaker === v));
+            } else if (['male', 'female', 'other'].includes(currentFilter)) {
+                voices = voices.filter(v => getGender(v) === currentFilter);
+            } else if (['english', 'irish', 'scottish', 'welsh', 'canadian', 'american'].includes(currentFilter)) {
+                voices = voices.filter(v => getAccent(v) === currentFilter);
+            }
+
+            return voices;
+        }
+
+        function renderVoiceGallery() {
+            const voices = getFilteredVoices();
+            const totalPages = Math.ceil(voices.length / VOICES_PER_PAGE);
+            const start = (currentPage - 1) * VOICES_PER_PAGE;
+            const end = start + VOICES_PER_PAGE;
+            const pageVoices = voices.slice(start, end);
+
+            const gallery = document.getElementById('voiceGallery');
+            gallery.innerHTML = pageVoices.map(speaker => {
+                const meta = getVoiceMetadata(speaker);
+                const fav = isFavorite(speaker);
+                const tested = history.some(h => h.speaker === speaker);
+                const gender = getGender(speaker);
+                const accent = getAccent(speaker);
+                const hasManualTag = genderTags[speaker] !== undefined;
+                const hasMetadata = speakerMetadata[speaker] !== undefined;
+
+                // Accent flag mapping
+                const accentFlags = {
+                    'english': '🇬🇧',
+                    'irish': '🇮🇪',
+                    'scottish': '🏴󠁧󠁢󠁳󠁣󠁴󠁿',
+                    'welsh': '🏴󠁧󠁢󠁷󠁬󠁳󠁿',
+                    'canadian': '🇨🇦',
+                    'american': '🇺🇸'
+                };
+
+                // For VCTK speakers, show the speaker name instead of range
+                const speakerName = speakerMetadata[speaker]?.speaker || `Speaker ${speaker}`;
+                const rangeText = `${speakerName}`;
+
+                return `
+                    <div class="voice-tile" id="tile-${speaker}">
+                        <div class="voice-tile-header">Speaker ${speaker}</div>
+                        <div class="voice-tile-meta">${meta || (tested ? 'Tested' : 'Not tested yet')}</div>
+                        <div class="voice-tile-stats">
+                            <span class="voice-stat">ID: ${speaker}</span>
+                            <span class="voice-stat">${rangeText}</span>
+                            ${accent && accentFlags[accent] ? `<span class="voice-stat" title="${accent.charAt(0).toUpperCase() + accent.slice(1)} accent">${accentFlags[accent]} ${accent.charAt(0).toUpperCase() + accent.slice(1)}</span>` : ''}
+                            ${fav ? '<span class="voice-stat">⭐ Favorite</span>' : ''}
+                            ${gender ? `<span class="voice-stat gender-badge ${gender}" title="${hasManualTag ? 'Manually tagged' : 'From metadata'}">${gender.charAt(0).toUpperCase() + gender.slice(1)}${!hasManualTag && hasMetadata ? ' •' : ''}</span>` : ''}
+                        </div>
+                        <div class="gender-tags">
+                            <button class="gender-tag-btn ${gender === 'male' ? 'selected' : ''}" onclick="setGender(${speaker}, ${gender === 'male' ? 'null' : "'male'"})" title="Tag as male">♂</button>
+                            <button class="gender-tag-btn ${gender === 'female' ? 'selected' : ''}" onclick="setGender(${speaker}, ${gender === 'female' ? 'null' : "'female'"})" title="Tag as female">♀</button>
+                            <button class="gender-tag-btn ${gender === 'other' ? 'selected' : ''}" onclick="setGender(${speaker}, ${gender === 'other' ? 'null' : "'other'"})" title="Tag as other">⚬</button>
+                        </div>
+                        <div class="voice-tile-actions">
+                            <button class="voice-tile-btn" onclick="testVoice(${speaker})" title="Test this voice">Test</button>
+                            <button class="voice-tile-btn" onclick="toggleFavorite(${speaker})" title="${fav ? 'Remove from favorites' : 'Add to favorites'}">${fav ? '★' : '☆'}</button>
+                            <button class="voice-tile-btn full-width" onclick="copyVoiceId(${speaker})" title="Copy speaker ID">📋 Copy ID</button>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+
+            // Update pagination
+            document.getElementById('pageInfo').textContent = `Page ${currentPage} of ${totalPages}`;
+            document.getElementById('pageInfo2').textContent = `Page ${currentPage} of ${totalPages}`;
+        }
+
+        function changePage(delta) {
+            const voices = getFilteredVoices();
+            const totalPages = Math.ceil(voices.length / VOICES_PER_PAGE);
+            currentPage = Math.max(1, Math.min(totalPages, currentPage + delta));
+            renderVoiceGallery();
+            window.scrollTo({ top: document.getElementById('voiceGallery').offsetTop - 100, behavior: 'smooth' });
+        }
+
+        async function testVoice(speaker) {
+            if (currentlyPlaying === speaker) {
+                return; // Already playing
+            }
+
+            // Clear previous playing state
+            if (currentlyPlaying !== null) {
+                const prevTile = document.getElementById(`tile-${currentlyPlaying}`);
+                if (prevTile) prevTile.classList.remove('playing');
+            }
+
+            currentlyPlaying = speaker;
+            const tile = document.getElementById(`tile-${speaker}`);
+            if (tile) tile.classList.add('playing');
+
+            try {
+                console.log(`Testing voice for speaker ${speaker}`);
+                const response = await fetch('http://localhost:4000/api/tts/synthesize', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ text: testPhrase, speaker }),
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error('TTS request failed:', response.status, errorText);
+                    throw new Error(`Synthesis failed: ${response.status}`);
+                }
+
+                console.log('TTS response received, creating audio blob...');
+                const audioBlob = await response.blob();
+                console.log(`Audio blob created: ${audioBlob.size} bytes, type: ${audioBlob.type}`);
+
+                // Create audio element and play
+                const audioUrl = URL.createObjectURL(audioBlob);
+                const audio = new Audio(audioUrl);
+                console.log('Audio element created, attempting to play...');
+
+                audio.onended = () => {
+                    console.log('Audio playback ended');
+                    if (tile) tile.classList.remove('playing');
+                    currentlyPlaying = null;
+                    URL.revokeObjectURL(audioUrl); // Clean up
+                };
+
+                audio.onerror = (e) => {
+                    console.error('Audio playback error:', e);
+                    if (tile) tile.classList.remove('playing');
+                    currentlyPlaying = null;
+                    URL.revokeObjectURL(audioUrl);
+                };
+
+                audio.oncanplaythrough = () => {
+                    console.log('Audio can play through, starting playback...');
+                };
+
+                try {
+                    await audio.play();
+                    console.log('Audio playback started successfully');
+
+                    // Add to history automatically
+                    addToHistory(speaker);
+                } catch (playError) {
+                    console.error('Failed to play audio:', playError);
+                    if (tile) tile.classList.remove('playing');
+                    currentlyPlaying = null;
+                    URL.revokeObjectURL(audioUrl);
+                    throw playError;
+                }
+
+            } catch (error) {
+                console.error('Test voice error:', error);
+                if (tile) tile.classList.remove('playing');
+                currentlyPlaying = null;
+                showStatus(`Error: ${error.message}`, 'error');
+            }
+        }
+
+        // Copy voice ID to clipboard
+        function copyVoiceId(speaker) {
+            navigator.clipboard.writeText(speaker.toString()).then(() => {
+                // Visual feedback
+                const tile = document.getElementById(`tile-${speaker}`);
+                if (tile) {
+                    const originalBg = tile.style.backgroundColor;
+                    tile.style.backgroundColor = '#e8f5e9';
+                    setTimeout(() => {
+                        tile.style.backgroundColor = originalBg;
+                    }, 500);
+                }
+                showStatus(`Copied Speaker ${speaker} to clipboard`, 'success');
+            }).catch(err => {
+                console.error('Failed to copy:', err);
+                showStatus('Failed to copy ID', 'error');
+            });
+        }
+
+        // Filter buttons
+        document.querySelectorAll('.filter-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                document.querySelectorAll('.filter-btn').forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+                currentFilter = btn.dataset.filter;
+                currentPage = 1;
+                renderVoiceGallery();
+            });
+        });
+
+        // Initial render
+        renderHistory();
+        renderVoiceGallery();
+    </script>
+</body>
+</html>

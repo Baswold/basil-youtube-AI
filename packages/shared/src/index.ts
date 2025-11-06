@@ -15,7 +15,27 @@ export interface ModeThinkingPayload {
   startedAt: number;
 }
 
+export interface ModeNormalPayload {
+  speaker: SpeakerId;
+  endedAt: number;
+}
+
+export type SharedScreenMode = "conversation" | "thinking";
+
+export interface SharedScreenThinkingState {
+  speaker: SpeakerId;
+  durationMs: number;
+  startedAt: number;
+  endsAt: number;
+}
+
+export interface SharedScreenState {
+  mode: SharedScreenMode;
+  thinking?: SharedScreenThinkingState;
+}
+
 export interface RecordingReadyPayload {
+  episodeId: string;
   files: string[];
 }
 
@@ -28,6 +48,7 @@ export interface OrchestratorStateSnapshot {
   orbStates: Record<SpeakerId, OrbState>;
   captions: CaptionPayload[];
   autopilot: boolean;
+  sharedScreen: SharedScreenState;
 }
 
 export interface ClientToServerEvents {
@@ -41,7 +62,12 @@ export interface ServerToClientEvents {
   "orb.state"(speaker: SpeakerId, state: OrbState): void;
   caption(payload: CaptionPayload): void;
   "mode.thinking"(payload: ModeThinkingPayload): void;
+  "mode.normal"(payload: ModeNormalPayload): void;
   "recording.ready"(payload: RecordingReadyPayload): void;
   "server.ack"(message: string): void;
   "state.snapshot"(snapshot: OrchestratorStateSnapshot): void;
+  "shared-screen.state"(state: SharedScreenState): void;
 }
+
+// Persona and configuration types
+export * from "./persona-types";

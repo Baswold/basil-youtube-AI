@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import clsx from "clsx";
 import { Orb, type AgentState } from "./ui/orb";
 import { useStudioStore } from "../state/studio-store";
+import { SettingsModal } from "./settings-modal";
 import type { SpeakerId } from "@basil/shared";
 
 const speakerDisplay: Record<SpeakerId, { label: string; colors: [string, string]; accent: string }> = {
@@ -45,7 +46,7 @@ interface ColorPreset {
 }
 
 export function StudioPage() {
-  const { connect, connection, orbStates, captions, autopilot, toggleAutopilot, lastAck } =
+  const { connect, connection, orbStates, captions, sharedScreen, autopilot, toggleAutopilot, lastAck } =
     useStudioStore();
   const [showControls, setShowControls] = useState(true);
   const [recordingView, setRecordingView] = useState(false);
@@ -53,6 +54,8 @@ export function StudioPage() {
   const [lightMode, setLightMode] = useState(false);
   const [colorPresets, setColorPresets] = useState<ColorPreset[]>([]);
   const [presetName, setPresetName] = useState("");
+  const [showSettings, setShowSettings] = useState(false);
+  const [thinkingCountdown, setThinkingCountdown] = useState<number | null>(null);
 
   useEffect(() => {
     connect();
@@ -69,6 +72,23 @@ export function StudioPage() {
       }
     }
   }, []);
+
+  useEffect(() => {
+    if (sharedScreen.mode === "thinking" && sharedScreen.thinking) {
+      const thinking = sharedScreen.thinking;
+      const updateCountdown = () => {
+        const remaining = thinking.endsAt - Date.now();
+        setThinkingCountdown(Math.max(0, remaining));
+      };
+
+      updateCountdown();
+      const timer = window.setInterval(updateCountdown, 200);
+      return () => window.clearInterval(timer);
+    }
+
+    setThinkingCountdown(null);
+    return undefined;
+  }, [sharedScreen]);
 
   // Save preset
   const savePreset = () => {
@@ -101,6 +121,34 @@ export function StudioPage() {
   const latestCaption = captions[0];
 
   const sharedScreenContent = useMemo(() => {
+    if (sharedScreen.mode === "thinking" && sharedScreen.thinking) {
+      const speaker = sharedScreen.thinking.speaker;
+      const meta = speakerDisplay[speaker];
+      const remainingMs = thinkingCountdown ?? sharedScreen.thinking.endsAt - Date.now();
+      const remainingSeconds = Math.max(0, Math.ceil(remainingMs / 1000));
+
+      return (
+        <div className="flex h-full w-full flex-col items-center justify-center gap-6 p-12 text-slate-100">
+          <div className="flex flex-col items-center gap-3">
+            <div className="text-xs uppercase tracking-[0.4em] text-slate-400">Thinking Mode</div>
+            <div className="text-3xl font-semibold bg-gradient-to-r from-cyan-300 via-slate-100 to-purple-300 bg-clip-text text-transparent">
+              {meta.label} is synthesizing
+            </div>
+          </div>
+          <div className="relative flex h-36 w-36 items-center justify-center">
+            <div className="absolute inset-0 rounded-full border border-white/10" />
+            <div className="absolute inset-4 rounded-full bg-gradient-to-br from-white/10 to-white/5 blur-xl" />
+            <span className="relative text-5xl font-bold tabular-nums text-slate-100">
+              {remainingSeconds}
+            </span>
+          </div>
+          <p className="max-w-md text-center text-sm text-slate-300/90">
+            Shared screen visuals paused while {meta.label} assembles a response. Countdown automatically resumes when the thought concludes.
+          </p>
+        </div>
+      );
+    }
+
     if (!latestCaption) {
       return (
         <div className="flex h-full w-full flex-col items-center justify-center gap-6 text-slate-200/80 p-8">
@@ -206,7 +254,7 @@ export function StudioPage() {
         </div>
       </div>
     );
-  }, [captions, latestCaption]);
+  }, [captions, latestCaption, sharedScreen, thinkingCountdown]);
 
   // Recording View - Clean view with just 2 orbs for masking
   if (recordingView) {
@@ -310,6 +358,13 @@ export function StudioPage() {
           </div>
 
           <div className="flex items-center gap-3">
+            <button
+              type="button"
+              onClick={() => setShowSettings(true)}
+              className="rounded-lg bg-cyan-500/10 px-4 py-2 text-sm font-semibold text-cyan-300 hover:bg-cyan-500/20 transition-all border border-cyan-500/30"
+            >
+              ⚙️ Settings
+            </button>
             <a
               href="/prep"
               className="rounded-lg bg-purple-500/10 px-4 py-2 text-sm font-semibold text-purple-300 hover:bg-purple-500/20 transition-all border border-purple-500/30"
@@ -548,6 +603,9 @@ export function StudioPage() {
           )}
         </main>
       </div>
+
+      {/* Settings Modal */}
+      <SettingsModal isOpen={showSettings} onClose={() => setShowSettings(false)} />
     </div>
   );
 }

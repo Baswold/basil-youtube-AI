@@ -3,16 +3,21 @@ import type { Socket } from "socket.io";
 import type {
   CaptionPayload,
   ClientToServerEvents,
+  ModeNormalPayload,
   ModeThinkingPayload,
   OrchestratorStateSnapshot,
   OrbState,
   ServerToClientEvents,
+  SharedScreenState,
   SpeakerId,
 } from "@basil/shared";
 import { RealAdapterFactory, type FactoryConfig } from "./adapters/factory.js";
 import { RecorderService } from "./services/recorder.js";
 import { EventLogger } from "./services/event-logger.js";
 import { BriefingLoader } from "./services/briefing-loader.js";
+import type { TtsAdapter } from "./adapters/interfaces.js";
+import { VadDetector } from "./services/vad-detector.js";
+import { CommandRouter, type CommandRouteResult } from "./services/command-router.js";
 
 interface OrchestratorConfig {
   useRealAdapters?: boolean;
@@ -20,6 +25,8 @@ interface OrchestratorConfig {
   briefingPath?: string;
   recordingDir?: string;
 }
+
+type AgentSpeaker = Extract<SpeakerId, "claude" | "guest">;
 
 export class ProductionOrchestrator {
   private autopilot = false;
@@ -35,6 +42,9 @@ export class ProductionOrchestrator {
   private eventLogger?: EventLogger;
   private briefingLoader: BriefingLoader;
   private activeSessions = new Map<string, SessionContext>();
+  private sharedScreen: SharedScreenState = { mode: "conversation" };
+  private thinkingTimer?: NodeJS.Timeout;
+  private duckingGain = Math.pow(10, -12 / 20);
 
   constructor(config: OrchestratorConfig = {}) {
     this.config = {
@@ -115,6 +125,37 @@ export class ProductionOrchestrator {
       }
     }
 
+    const vad = new VadDetector({
+      onSpeechStart: () => this.handleHumanSpeechStart(sessionId),
+      onSpeechEnd: () => this.handleHumanSpeechEnd(sessionId),
+    });
+
+    const commandRouter = new CommandRouter();
+
+    const resolveAdapter = async <T>(adapter: T | Promise<T>): Promise<T> => {
+      if (adapter && typeof (adapter as any).then === "function") {
+        return await (adapter as unknown as Promise<T>);
+      }
+      return adapter as T;
+    };
+
+    let claudeTts: TtsAdapter | undefined;
+    let guestTts: TtsAdapter | undefined;
+
+    if (this.config.useRealAdapters) {
+      try {
+        claudeTts = await resolveAdapter(this.adapterFactory.tts("claude") as any);
+      } catch (error) {
+        console.warn("[orchestrator] failed to initialize Claude TTS adapter", error);
+      }
+
+      try {
+        guestTts = await resolveAdapter(this.adapterFactory.tts("guest") as any);
+      } catch (error) {
+        console.warn("[orchestrator] failed to initialize guest TTS adapter", error);
+      }
+    }
+
     return {
       sessionId,
       socket,
@@ -123,6 +164,15 @@ export class ProductionOrchestrator {
       briefing,
       isRecording: false,
       isSpeaking: false,
+      vad,
+      commandRouter,
+      ttsAdapters: {
+        claude: claudeTts,
+        guest: guestTts,
+      },
+      activeAgentSpeakers: new Set<AgentSpeaker>(),
+      duckingActive: false,
+      humanSpeaking: false,
     };
   }
 
@@ -178,13 +228,185 @@ export class ProductionOrchestrator {
     const context = this.activeSessions.get(sessionId);
     if (!context) return;
 
-    const buffer = Buffer.from(chunk);
+    const buffer = Buffer.isBuffer(chunk)
+      ? chunk
+      : Buffer.from(chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : chunk);
+    
+    context.vad.processAudio(buffer);
     
     // Send to STT if available
     // For now, this is a placeholder - will be wired when STT is fully integrated
     
     // Record audio (for "you" speaker)
     await context.recorder.writeAudioChunk("you", buffer);
+  }
+
+  private handleHumanSpeechStart(sessionId: string): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context || context.humanSpeaking) return;
+
+    context.humanSpeaking = true;
+    context.duckingActive = true;
+    context.eventLogger.logVadSpeechStart(sessionId, "you");
+
+    const interrupted = Array.from(context.activeAgentSpeakers);
+    if (interrupted.length > 0) {
+      context.eventLogger.logBargeIn(sessionId, "you", interrupted);
+      for (const speaker of interrupted) {
+        void this.stopAgentPlayback(context, speaker);
+      }
+      context.activeAgentSpeakers.clear();
+    }
+
+    context.orbRestore = {
+      claude: this.orbStates.claude,
+      guest: this.orbStates.guest,
+    };
+
+    this.updateOrbState("you", "speaking", context);
+    for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
+      this.updateOrbState(agent, "muted", context);
+    }
+  }
+
+  private handleHumanSpeechEnd(sessionId: string): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context || !context.humanSpeaking) return;
+
+    context.humanSpeaking = false;
+    context.duckingActive = false;
+    context.eventLogger.logVadSpeechEnd(sessionId, "you");
+
+    this.updateOrbState("you", "listening", context);
+
+    const restore = context.orbRestore;
+    if (restore) {
+      for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
+        const previous = restore[agent];
+        this.updateOrbState(agent, previous ?? "listening", context);
+      }
+      context.orbRestore = undefined;
+    } else {
+      for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
+        this.updateOrbState(agent, "listening", context);
+      }
+    }
+  }
+
+  private handleCommand(context: SessionContext, command: CommandRouteResult): void {
+    context.lastCommand = command;
+    context.eventLogger.logCommandRoute(context.sessionId, command);
+
+    switch (command.action) {
+      case "thinking":
+        this.enterThinkingMode(context, command);
+        break;
+      case "address": {
+        const targets = new Set<AgentSpeaker>(command.targets as AgentSpeaker[]);
+        context.pendingTargets = targets;
+        context.socket.emit("server.ack", `routing to ${Array.from(targets).join(", ")}`);
+        break;
+      }
+      default:
+        context.pendingTargets = undefined;
+        break;
+    }
+  }
+
+  private enterThinkingMode(context: SessionContext, command: CommandRouteResult): void {
+    const speaker = (command.targets[0] as AgentSpeaker) || "claude";
+    const durationMs = command.durationMs ?? 30_000;
+    const startedAt = Date.now();
+    const endsAt = startedAt + durationMs;
+
+    if (this.thinkingTimer) {
+      clearTimeout(this.thinkingTimer);
+    }
+
+    this.sharedScreen = {
+      mode: "thinking",
+      thinking: {
+        speaker,
+        durationMs,
+        startedAt,
+        endsAt,
+      },
+    };
+
+    const payload: ModeThinkingPayload = {
+      speaker,
+      durationMs,
+      startedAt,
+    };
+
+    this.broadcastSharedScreen();
+
+    for (const session of this.activeSessions.values()) {
+      session.socket.emit("mode.thinking", payload);
+    }
+
+    this.updateOrbState(speaker, "thinking", context);
+    for (const other of ["claude", "guest"] as AgentSpeaker[]) {
+      if (other !== speaker) {
+        this.updateOrbState(other, "muted", context);
+      }
+    }
+
+    context.eventLogger.logThinkingMode(context.sessionId, speaker, durationMs);
+
+    this.thinkingTimer = setTimeout(() => {
+      this.exitThinkingMode(context, speaker);
+    }, durationMs);
+  }
+
+  private exitThinkingMode(context: SessionContext, speaker: AgentSpeaker): void {
+    if (this.sharedScreen.mode !== "thinking") {
+      return;
+    }
+
+    if (this.thinkingTimer) {
+      clearTimeout(this.thinkingTimer);
+      this.thinkingTimer = undefined;
+    }
+
+    this.sharedScreen = { mode: "conversation" };
+    this.broadcastSharedScreen();
+
+    const payload: ModeNormalPayload = {
+      speaker,
+      endedAt: Date.now(),
+    };
+
+    for (const session of this.activeSessions.values()) {
+      session.socket.emit("mode.normal", payload);
+    }
+
+    for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
+      this.updateOrbState(agent, "listening", context);
+    }
+  }
+
+  private broadcastSharedScreen(): void {
+    for (const session of this.activeSessions.values()) {
+      session.socket.emit("shared-screen.state", this.sharedScreen);
+    }
+  }
+
+  private async stopAgentPlayback(context: SessionContext, speaker: AgentSpeaker): Promise<void> {
+    const adapter = context.ttsAdapters[speaker];
+    if (!adapter) return;
+
+    try {
+      await adapter.stop(context.sessionId);
+    } catch (error) {
+      console.warn(`[orchestrator] failed to stop TTS for ${speaker}`, error);
+    }
+
+    context.activeAgentSpeakers.delete(speaker);
+
+    if (!context.humanSpeaking) {
+      this.updateOrbState(speaker, "listening", context);
+    }
   }
 
   private handleSttTranscript(sessionId: string, text: string, isFinal: boolean): void {
@@ -207,7 +429,12 @@ export class ProductionOrchestrator {
       context.eventLogger.logSttTranscript(sessionId, "you", text, true);
 
       // Update orb state
-      this.updateOrbState("you", "listening", context.socket);
+      this.updateOrbState("you", "listening", context);
+
+      const command = context.commandRouter.route(text);
+      if (command) {
+        this.handleCommand(context, command);
+      }
     }
   }
 
@@ -220,30 +447,42 @@ export class ProductionOrchestrator {
     context.socket.emit("server.ack", `stt error: ${error.message}`);
   }
 
-  private handleTtsAudioChunk(sessionId: string, audioChunk: Buffer): void {
+  private handleTtsAudioChunk(sessionId: string, speaker: AgentSpeaker, audioChunk: Buffer): void {
     const context = this.activeSessions.get(sessionId);
     if (!context) return;
 
-    // Determine which speaker is currently speaking
-    // This will be tracked in session context
-    const speaker: SpeakerId = "claude"; // Placeholder
-    context.recorder.writeAudioChunk(speaker, audioChunk);
+    const processedChunk = context.duckingActive ? this.applyGain(audioChunk, this.duckingGain) : audioChunk;
+    context.recorder.writeAudioChunk(speaker, processedChunk);
+
+    if (!context.activeAgentSpeakers.has(speaker)) {
+      context.activeAgentSpeakers.add(speaker);
+      context.eventLogger.logTtsStart(sessionId, speaker, context.lastCommand?.remainder ?? "");
+      this.updateOrbState(speaker, "speaking", context);
+    }
+
+    context.eventLogger.logTtsChunk(sessionId, speaker, processedChunk.length);
   }
 
-  private handleTtsComplete(sessionId: string): void {
+  private handleTtsComplete(sessionId: string, speaker: AgentSpeaker): void {
     const context = this.activeSessions.get(sessionId);
     if (!context) return;
 
-    console.info(`[orchestrator] TTS complete for ${sessionId}`);
-    context.eventLogger.logTtsComplete(sessionId, "claude");
+    console.info(`[orchestrator] TTS complete for ${sessionId} (${speaker})`);
+    context.eventLogger.logTtsComplete(sessionId, speaker);
+    context.activeAgentSpeakers.delete(speaker);
+
+    if (!context.humanSpeaking) {
+      this.updateOrbState(speaker, "listening", context);
+    }
   }
 
-  private handleTtsError(sessionId: string, error: Error): void {
+  private handleTtsError(sessionId: string, speaker: AgentSpeaker, error: Error): void {
     const context = this.activeSessions.get(sessionId);
     if (!context) return;
 
-    console.error(`[orchestrator] TTS error for ${sessionId}:`, error);
-    context.eventLogger.logError(sessionId, error, { service: "tts" });
+    console.error(`[orchestrator] TTS error for ${sessionId} (${speaker}):`, error);
+    context.eventLogger.logError(sessionId, error, { service: "tts", speaker });
+    context.activeAgentSpeakers.delete(speaker);
   }
 
   private addCaption(caption: CaptionPayload): void {
@@ -253,16 +492,18 @@ export class ProductionOrchestrator {
   private updateOrbState(
     speaker: SpeakerId,
     state: OrbState,
-    socket: Socket<ClientToServerEvents, ServerToClientEvents>
+    context: SessionContext
   ): void {
     const oldState = this.orbStates[speaker];
-    this.orbStates[speaker] = state;
-    socket.emit("orb.state", speaker, state);
+    if (oldState === state) return;
 
-    const context = Array.from(this.activeSessions.values())[0];
-    if (context) {
-      context.eventLogger.logOrbStateChange(context.sessionId, speaker, oldState, state);
+    this.orbStates[speaker] = state;
+
+    for (const session of this.activeSessions.values()) {
+      session.socket.emit("orb.state", speaker, state);
     }
+
+    context.eventLogger.logOrbStateChange(context.sessionId, speaker, oldState, state);
   }
 
   private async cleanupSession(sessionId: string): Promise<void> {
@@ -285,6 +526,14 @@ export class ProductionOrchestrator {
     } catch (error) {
       console.error(`[orchestrator] error cleaning up session ${sessionId}:`, error);
     }
+
+    if (this.activeSessions.size === 0) {
+      if (this.thinkingTimer) {
+        clearTimeout(this.thinkingTimer);
+        this.thinkingTimer = undefined;
+      }
+      this.sharedScreen = { mode: "conversation" };
+    }
   }
 
   private snapshot(): OrchestratorStateSnapshot {
@@ -292,6 +541,7 @@ export class ProductionOrchestrator {
       orbStates: { ...this.orbStates },
       captions: [...this.captions].slice(0, 6),
       autopilot: this.autopilot,
+      sharedScreen: this.sharedScreen,
     };
   }
 
@@ -306,6 +556,24 @@ export class ProductionOrchestrator {
   }
 }
 
+  private applyGain(buffer: Buffer, gain: number): Buffer {
+    const scaled = Buffer.allocUnsafe(buffer.length);
+
+    for (let i = 0; i < buffer.length; i += 2) {
+      if (i + 1 >= buffer.length) {
+        scaled[i] = buffer[i];
+        continue;
+      }
+
+      const sample = buffer.readInt16LE(i);
+      let value = Math.round(sample * gain);
+      value = Math.max(-32768, Math.min(32767, value));
+      scaled.writeInt16LE(value, i);
+    }
+
+    return scaled;
+  }
+
 interface SessionContext {
   sessionId: string;
   socket: Socket<ClientToServerEvents, ServerToClientEvents>;
@@ -314,4 +582,13 @@ interface SessionContext {
   briefing?: any;
   isRecording: boolean;
   isSpeaking: boolean;
+  vad: VadDetector;
+  commandRouter: CommandRouter;
+  ttsAdapters: Partial<Record<AgentSpeaker, TtsAdapter>>;
+  activeAgentSpeakers: Set<AgentSpeaker>;
+  duckingActive: boolean;
+  humanSpeaking: boolean;
+  lastCommand?: CommandRouteResult;
+  orbRestore?: Partial<Record<AgentSpeaker, OrbState>>;
+  pendingTargets?: Set<AgentSpeaker>;
 }

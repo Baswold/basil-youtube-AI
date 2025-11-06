@@ -10,6 +10,7 @@ import { ProductionOrchestrator } from "./orchestrator-v2.js";
 import type { ClientToServerEvents, ServerToClientEvents } from "@basil/shared";
 import { appConfig, validateConfig, printConfig } from "./config.js";
 import { logger } from "./logger.js";
+import { setupApiRoutes } from "./api-routes.js";
 
 // Validate configuration on startup
 try {
@@ -99,6 +100,9 @@ app.get("/ready", (req, res) => {
     res.status(400).json({ error: "Invalid query parameters" });
   }
 });
+
+// Setup API routes for configuration management
+setupApiRoutes(app);
 
 // Global error handler middleware
 app.use(

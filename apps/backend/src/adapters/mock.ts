@@ -12,13 +12,15 @@ class MockStt implements SttAdapter {
 }
 
 class MockTts implements TtsAdapter {
+  constructor(private readonly speaker: "claude" | "guest" = "claude") {}
+
   async synthesize(sessionId: string, text: string): Promise<void> {
-    console.info(`[mock-tts] ${sessionId} -> ${text}`);
+    console.info(`[mock-tts/${this.speaker}] ${sessionId} -> ${text}`);
     await delay(10);
   }
 
   async stop(sessionId: string): Promise<void> {
-    console.info(`[mock-tts] stopping ${sessionId}`);
+    console.info(`[mock-tts/${this.speaker}] stopping ${sessionId}`);
   }
 }
 
@@ -39,8 +41,8 @@ export class MockAdapterFactory implements AdapterFactory {
     return new MockStt();
   }
 
-  tts(): TtsAdapter {
-    return new MockTts();
+  tts(speaker: "claude" | "guest" = "claude"): TtsAdapter {
+    return new MockTts(speaker);
   }
 
   llm(identifier: "claude" | "guest"): LlmAdapter {

@@ -1,0 +1,23 @@
+{
+  "name": "piper-tts-dashboard",
+  "version": "1.0.0",
+  "description": "Simple dashboard to test Piper TTS voices",
+  "type": "module",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js"
+  },
+  "keywords": [
+    "tts",
+    "piper",
+    "voice",
+    "text-to-speech"
+  ],
+  "author": "",
+  "license": "MIT",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2"
+  }
+}

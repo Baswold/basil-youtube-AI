@@ -12,6 +12,7 @@ export interface ModeThinkingPayload {
     startedAt: number;
 }
 export interface RecordingReadyPayload {
+    episodeId: string;
     files: string[];
 }
 export interface ClientHelloPayload {
@@ -37,3 +38,4 @@ export interface ServerToClientEvents {
     "server.ack"(message: string): void;
     "state.snapshot"(snapshot: OrchestratorStateSnapshot): void;
 }
+export * from "./persona-types";

@@ -1,3 +1,5 @@
+import type { SpeakerId } from "@basil/shared";
+
 export interface SttAdapter {
   start(sessionId: string): Promise<void>;
   stop(sessionId: string): Promise<void>;
@@ -17,6 +19,6 @@ export interface LlmAdapter {
 
 export interface AdapterFactory {
   stt(): SttAdapter;
-  tts(): TtsAdapter;
+  tts(speaker?: Exclude<SpeakerId, "you">): TtsAdapter;
   llm(identifier: "claude" | "guest"): LlmAdapter;
 }

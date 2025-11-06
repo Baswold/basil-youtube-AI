@@ -1,0 +1,765 @@
+{
+  "0": {
+    "speaker": "ED\n",
+    "libriSpeakerId": "ED\n",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 0 (ED\n)"
+  },
+  "1": {
+    "speaker": "p225",
+    "libriSpeakerId": "p225",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 1 (p225)"
+  },
+  "2": {
+    "speaker": "p226",
+    "libriSpeakerId": "p226",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 2 (p226)"
+  },
+  "3": {
+    "speaker": "p227",
+    "libriSpeakerId": "p227",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 3 (p227)"
+  },
+  "4": {
+    "speaker": "p228",
+    "libriSpeakerId": "p228",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 4 (p228)"
+  },
+  "5": {
+    "speaker": "p229",
+    "libriSpeakerId": "p229",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 5 (p229)"
+  },
+  "6": {
+    "speaker": "p230",
+    "libriSpeakerId": "p230",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 6 (p230)"
+  },
+  "7": {
+    "speaker": "p231",
+    "libriSpeakerId": "p231",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 7 (p231)"
+  },
+  "8": {
+    "speaker": "p232",
+    "libriSpeakerId": "p232",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 8 (p232)"
+  },
+  "9": {
+    "speaker": "p233",
+    "libriSpeakerId": "p233",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 9 (p233)"
+  },
+  "10": {
+    "speaker": "p234",
+    "libriSpeakerId": "p234",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 10 (p234)"
+  },
+  "11": {
+    "speaker": "p236",
+    "libriSpeakerId": "p236",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 11 (p236)"
+  },
+  "12": {
+    "speaker": "p237",
+    "libriSpeakerId": "p237",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 12 (p237)"
+  },
+  "13": {
+    "speaker": "p238",
+    "libriSpeakerId": "p238",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 13 (p238)"
+  },
+  "14": {
+    "speaker": "p239",
+    "libriSpeakerId": "p239",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 14 (p239)"
+  },
+  "15": {
+    "speaker": "p240",
+    "libriSpeakerId": "p240",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 15 (p240)"
+  },
+  "16": {
+    "speaker": "p241",
+    "libriSpeakerId": "p241",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 16 (p241)"
+  },
+  "17": {
+    "speaker": "p243",
+    "libriSpeakerId": "p243",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 17 (p243)"
+  },
+  "18": {
+    "speaker": "p244",
+    "libriSpeakerId": "p244",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 18 (p244)"
+  },
+  "19": {
+    "speaker": "p245",
+    "libriSpeakerId": "p245",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 19 (p245)"
+  },
+  "20": {
+    "speaker": "p246",
+    "libriSpeakerId": "p246",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 20 (p246)"
+  },
+  "21": {
+    "speaker": "p247",
+    "libriSpeakerId": "p247",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 21 (p247)"
+  },
+  "22": {
+    "speaker": "p248",
+    "libriSpeakerId": "p248",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 22 (p248)"
+  },
+  "23": {
+    "speaker": "p249",
+    "libriSpeakerId": "p249",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 23 (p249)"
+  },
+  "24": {
+    "speaker": "p250",
+    "libriSpeakerId": "p250",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 24 (p250)"
+  },
+  "25": {
+    "speaker": "p251",
+    "libriSpeakerId": "p251",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 25 (p251)"
+  },
+  "26": {
+    "speaker": "p252",
+    "libriSpeakerId": "p252",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 26 (p252)"
+  },
+  "27": {
+    "speaker": "p253",
+    "libriSpeakerId": "p253",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 27 (p253)"
+  },
+  "28": {
+    "speaker": "p254",
+    "libriSpeakerId": "p254",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 28 (p254)"
+  },
+  "29": {
+    "speaker": "p255",
+    "libriSpeakerId": "p255",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 29 (p255)"
+  },
+  "30": {
+    "speaker": "p256",
+    "libriSpeakerId": "p256",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 30 (p256)"
+  },
+  "31": {
+    "speaker": "p257",
+    "libriSpeakerId": "p257",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 31 (p257)"
+  },
+  "32": {
+    "speaker": "p258",
+    "libriSpeakerId": "p258",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 32 (p258)"
+  },
+  "33": {
+    "speaker": "p259",
+    "libriSpeakerId": "p259",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 33 (p259)"
+  },
+  "34": {
+    "speaker": "p260",
+    "libriSpeakerId": "p260",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 34 (p260)"
+  },
+  "35": {
+    "speaker": "p261",
+    "libriSpeakerId": "p261",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 35 (p261)"
+  },
+  "36": {
+    "speaker": "p262",
+    "libriSpeakerId": "p262",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 36 (p262)"
+  },
+  "37": {
+    "speaker": "p263",
+    "libriSpeakerId": "p263",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 37 (p263)"
+  },
+  "38": {
+    "speaker": "p264",
+    "libriSpeakerId": "p264",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 38 (p264)"
+  },
+  "39": {
+    "speaker": "p265",
+    "libriSpeakerId": "p265",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 39 (p265)"
+  },
+  "40": {
+    "speaker": "p266",
+    "libriSpeakerId": "p266",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 40 (p266)"
+  },
+  "41": {
+    "speaker": "p267",
+    "libriSpeakerId": "p267",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 41 (p267)"
+  },
+  "42": {
+    "speaker": "p268",
+    "libriSpeakerId": "p268",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 42 (p268)"
+  },
+  "43": {
+    "speaker": "p269",
+    "libriSpeakerId": "p269",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 43 (p269)"
+  },
+  "44": {
+    "speaker": "p270",
+    "libriSpeakerId": "p270",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 44 (p270)"
+  },
+  "45": {
+    "speaker": "p271",
+    "libriSpeakerId": "p271",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 45 (p271)"
+  },
+  "46": {
+    "speaker": "p272",
+    "libriSpeakerId": "p272",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 46 (p272)"
+  },
+  "47": {
+    "speaker": "p273",
+    "libriSpeakerId": "p273",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 47 (p273)"
+  },
+  "48": {
+    "speaker": "p274",
+    "libriSpeakerId": "p274",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 48 (p274)"
+  },
+  "49": {
+    "speaker": "p275",
+    "libriSpeakerId": "p275",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 49 (p275)"
+  },
+  "50": {
+    "speaker": "p276",
+    "libriSpeakerId": "p276",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 50 (p276)"
+  },
+  "51": {
+    "speaker": "p277",
+    "libriSpeakerId": "p277",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 51 (p277)"
+  },
+  "52": {
+    "speaker": "p278",
+    "libriSpeakerId": "p278",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 52 (p278)"
+  },
+  "53": {
+    "speaker": "p279",
+    "libriSpeakerId": "p279",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 53 (p279)"
+  },
+  "54": {
+    "speaker": "p280",
+    "libriSpeakerId": "p280",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 54 (p280)"
+  },
+  "55": {
+    "speaker": "p281",
+    "libriSpeakerId": "p281",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 55 (p281)"
+  },
+  "56": {
+    "speaker": "p282",
+    "libriSpeakerId": "p282",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 56 (p282)"
+  },
+  "57": {
+    "speaker": "p283",
+    "libriSpeakerId": "p283",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 57 (p283)"
+  },
+  "58": {
+    "speaker": "p284",
+    "libriSpeakerId": "p284",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 58 (p284)"
+  },
+  "59": {
+    "speaker": "p285",
+    "libriSpeakerId": "p285",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 59 (p285)"
+  },
+  "60": {
+    "speaker": "p286",
+    "libriSpeakerId": "p286",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 60 (p286)"
+  },
+  "61": {
+    "speaker": "p287",
+    "libriSpeakerId": "p287",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 61 (p287)"
+  },
+  "62": {
+    "speaker": "p288",
+    "libriSpeakerId": "p288",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 62 (p288)"
+  },
+  "63": {
+    "speaker": "p292",
+    "libriSpeakerId": "p292",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 63 (p292)"
+  },
+  "64": {
+    "speaker": "p293",
+    "libriSpeakerId": "p293",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 64 (p293)"
+  },
+  "65": {
+    "speaker": "p294",
+    "libriSpeakerId": "p294",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 65 (p294)"
+  },
+  "66": {
+    "speaker": "p295",
+    "libriSpeakerId": "p295",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 66 (p295)"
+  },
+  "67": {
+    "speaker": "p297",
+    "libriSpeakerId": "p297",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 67 (p297)"
+  },
+  "68": {
+    "speaker": "p298",
+    "libriSpeakerId": "p298",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 68 (p298)"
+  },
+  "69": {
+    "speaker": "p299",
+    "libriSpeakerId": "p299",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 69 (p299)"
+  },
+  "70": {
+    "speaker": "p300",
+    "libriSpeakerId": "p300",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 70 (p300)"
+  },
+  "71": {
+    "speaker": "p301",
+    "libriSpeakerId": "p301",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 71 (p301)"
+  },
+  "72": {
+    "speaker": "p302",
+    "libriSpeakerId": "p302",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 72 (p302)"
+  },
+  "73": {
+    "speaker": "p303",
+    "libriSpeakerId": "p303",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 73 (p303)"
+  },
+  "74": {
+    "speaker": "p304",
+    "libriSpeakerId": "p304",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 74 (p304)"
+  },
+  "75": {
+    "speaker": "p305",
+    "libriSpeakerId": "p305",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 75 (p305)"
+  },
+  "76": {
+    "speaker": "p306",
+    "libriSpeakerId": "p306",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 76 (p306)"
+  },
+  "77": {
+    "speaker": "p307",
+    "libriSpeakerId": "p307",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 77 (p307)"
+  },
+  "78": {
+    "speaker": "p308",
+    "libriSpeakerId": "p308",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 78 (p308)"
+  },
+  "79": {
+    "speaker": "p310",
+    "libriSpeakerId": "p310",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 79 (p310)"
+  },
+  "80": {
+    "speaker": "p311",
+    "libriSpeakerId": "p311",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 80 (p311)"
+  },
+  "81": {
+    "speaker": "p312",
+    "libriSpeakerId": "p312",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 81 (p312)"
+  },
+  "82": {
+    "speaker": "p313",
+    "libriSpeakerId": "p313",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 82 (p313)"
+  },
+  "83": {
+    "speaker": "p314",
+    "libriSpeakerId": "p314",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 83 (p314)"
+  },
+  "84": {
+    "speaker": "p316",
+    "libriSpeakerId": "p316",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 84 (p316)"
+  },
+  "85": {
+    "speaker": "p317",
+    "libriSpeakerId": "p317",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 85 (p317)"
+  },
+  "86": {
+    "speaker": "p318",
+    "libriSpeakerId": "p318",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 86 (p318)"
+  },
+  "87": {
+    "speaker": "p323",
+    "libriSpeakerId": "p323",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 87 (p323)"
+  },
+  "88": {
+    "speaker": "p326",
+    "libriSpeakerId": "p326",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 88 (p326)"
+  },
+  "89": {
+    "speaker": "p329",
+    "libriSpeakerId": "p329",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 89 (p329)"
+  },
+  "90": {
+    "speaker": "p330",
+    "libriSpeakerId": "p330",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 90 (p330)"
+  },
+  "91": {
+    "speaker": "p333",
+    "libriSpeakerId": "p333",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 91 (p333)"
+  },
+  "92": {
+    "speaker": "p334",
+    "libriSpeakerId": "p334",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 92 (p334)"
+  },
+  "93": {
+    "speaker": "p335",
+    "libriSpeakerId": "p335",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 93 (p335)"
+  },
+  "94": {
+    "speaker": "p336",
+    "libriSpeakerId": "p336",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 94 (p336)"
+  },
+  "95": {
+    "speaker": "p339",
+    "libriSpeakerId": "p339",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 95 (p339)"
+  },
+  "96": {
+    "speaker": "p340",
+    "libriSpeakerId": "p340",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 96 (p340)"
+  },
+  "97": {
+    "speaker": "p341",
+    "libriSpeakerId": "p341",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 97 (p341)"
+  },
+  "98": {
+    "speaker": "p343",
+    "libriSpeakerId": "p343",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 98 (p343)"
+  },
+  "99": {
+    "speaker": "p345",
+    "libriSpeakerId": "p345",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 99 (p345)"
+  },
+  "100": {
+    "speaker": "p347",
+    "libriSpeakerId": "p347",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 100 (p347)"
+  },
+  "101": {
+    "speaker": "p351",
+    "libriSpeakerId": "p351",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 101 (p351)"
+  },
+  "102": {
+    "speaker": "p360",
+    "libriSpeakerId": "p360",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 102 (p360)"
+  },
+  "103": {
+    "speaker": "p361",
+    "libriSpeakerId": "p361",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 103 (p361)"
+  },
+  "104": {
+    "speaker": "p362",
+    "libriSpeakerId": "p362",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 104 (p362)"
+  },
+  "105": {
+    "speaker": "p363",
+    "libriSpeakerId": "p363",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 105 (p363)"
+  },
+  "106": {
+    "speaker": "p364",
+    "libriSpeakerId": "p364",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 106 (p364)"
+  },
+  "107": {
+    "speaker": "p374",
+    "libriSpeakerId": "p374",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 107 (p374)"
+  },
+  "108": {
+    "speaker": "p376",
+    "libriSpeakerId": "p376",
+    "gender": "unknown",
+    "accent": "english",
+    "name": "VCTK Speaker 108 (p376)"
+  }
+}

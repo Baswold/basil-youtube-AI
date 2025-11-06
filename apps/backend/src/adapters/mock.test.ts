@@ -25,8 +25,15 @@ describe("MockAdapterFactory", () => {
   });
 
   describe("TTS Adapter", () => {
-    it("should create TTS adapter", () => {
+    it("should create TTS adapter for Claude by default", () => {
       const tts = factory.tts();
+      expect(tts).toBeDefined();
+      expect(tts.synthesize).toBeInstanceOf(Function);
+      expect(tts.stop).toBeInstanceOf(Function);
+    });
+
+    it("should create TTS adapter for guest when specified", () => {
+      const tts = factory.tts("guest");
       expect(tts).toBeDefined();
       expect(tts.synthesize).toBeInstanceOf(Function);
       expect(tts.stop).toBeInstanceOf(Function);
