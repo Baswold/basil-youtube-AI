@@ -73,10 +73,13 @@
 - [x] Set up coverage reporting
 
 ## Mid Term (Phase 2 Enhancements)
-- [ ] Flesh out barge-in logic with command routing and ducking control.
-  - [ ] Implement VAD-based interruption detection
-  - [ ] Add ducking functionality (reduce agent volume by 12 dB when human speaks)
-  - [ ] Create command routing system for addressing specific agents
+- [x] Flesh out barge-in logic with command routing and ducking control.
+  - [x] Implement VAD-based interruption detection with confidence scoring
+  - [x] Add ducking functionality with smooth gain ramping and configurable profiles
+  - [x] Create enhanced command routing system with fuzzy matching and context awareness
+  - [x] Implement barge-in manager with grace periods and priority system
+  - [x] Write comprehensive tests for all enhanced features
+  - [x] Create documentation (ENHANCED_BARGE_IN_GUIDE.md)
 - [ ] Build thinking mode trigger handling and shared screen visual transitions.
   - [ ] Implement thinking mode detection and trigger interception
   - [ ] Add visual transition handling for shared screen states

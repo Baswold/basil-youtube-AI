@@ -18,12 +18,19 @@ import { BriefingLoader } from "./services/briefing-loader.js";
 import type { TtsAdapter } from "./adapters/interfaces.js";
 import { VadDetector } from "./services/vad-detector.js";
 import { CommandRouter, type CommandRouteResult } from "./services/command-router.js";
+import { EnhancedVadDetector } from "./services/vad-detector-enhanced.js";
+import { EnhancedCommandRouter } from "./services/command-router-enhanced.js";
+import { MultiChannelAudioProcessor } from "./services/audio-processor.js";
+import { BargeInManager, type BargeInMode } from "./services/barge-in-manager.js";
 
 interface OrchestratorConfig {
   useRealAdapters?: boolean;
   episodeId?: string;
   briefingPath?: string;
   recordingDir?: string;
+  useEnhancedFeatures?: boolean; // Enable enhanced VAD, command routing, and barge-in
+  bargeInMode?: BargeInMode;
+  duckingProfile?: "soft" | "medium" | "hard";
 }
 
 type AgentSpeaker = Extract<SpeakerId, "claude" | "guest">;
@@ -52,6 +59,9 @@ export class ProductionOrchestrator {
       episodeId: config.episodeId || `episode-${Date.now()}`,
       briefingPath: config.briefingPath,
       recordingDir: config.recordingDir || "./recordings",
+      useEnhancedFeatures: process.env.USE_ENHANCED_FEATURES === "true" || config.useEnhancedFeatures || false,
+      bargeInMode: (config.bargeInMode as BargeInMode) || "graceful",
+      duckingProfile: config.duckingProfile || "medium",
     };
 
     // Initialize adapter factory
@@ -132,6 +142,67 @@ export class ProductionOrchestrator {
 
     const commandRouter = new CommandRouter();
 
+    // Initialize enhanced features if enabled
+    const useEnhancedFeatures = this.config.useEnhancedFeatures || false;
+    let enhancedVad: EnhancedVadDetector | undefined;
+    let enhancedCommandRouter: EnhancedCommandRouter | undefined;
+    let audioProcessor: MultiChannelAudioProcessor | undefined;
+    let bargeInManager: BargeInManager | undefined;
+
+    if (useEnhancedFeatures) {
+      console.info(`[orchestrator] initializing enhanced features for session ${sessionId}`);
+
+      // Enhanced VAD with confidence scoring and adaptive thresholds
+      enhancedVad = new EnhancedVadDetector({
+        sampleRate: 48_000,
+        adaptiveThreshold: true,
+        confidenceEnabled: true,
+        spectralAnalysis: true,
+        onSpeechStart: (confidence) => this.handleEnhancedHumanSpeechStart(sessionId, confidence),
+        onSpeechEnd: (confidence) => this.handleEnhancedHumanSpeechEnd(sessionId, confidence),
+      });
+
+      // Enhanced command router with fuzzy matching
+      enhancedCommandRouter = new EnhancedCommandRouter();
+
+      // Multi-channel audio processor with smooth ducking
+      audioProcessor = new MultiChannelAudioProcessor({
+        sampleRate: 48_000,
+        ducking: {
+          profile: this.config.duckingProfile,
+          rampUpMs: 50,
+          rampDownMs: 150,
+          curve: "exponential",
+        },
+      });
+
+      // Barge-in manager for coordinated interruption handling
+      bargeInManager = new BargeInManager(
+        {
+          mode: this.config.bargeInMode,
+          gracePeriodMs: 300,
+          duckingEnabled: true,
+          duckingLeadTimeMs: 150,
+        },
+        eventLogger
+      );
+
+      // Set up barge-in callbacks
+      bargeInManager.setCallbacks({
+        onBargeInStart: (interrupter, interrupted) => {
+          this.handleBargeInStart(sessionId, interrupter, interrupted);
+        },
+        onBargeInComplete: (interrupter, interrupted) => {
+          this.handleBargeInComplete(sessionId, interrupter, interrupted);
+        },
+        onDuckingRequest: (speakers, enable) => {
+          this.handleDuckingRequest(sessionId, speakers as AgentSpeaker[], enable);
+        },
+      });
+
+      console.info(`[orchestrator] enhanced features initialized for session ${sessionId}`);
+    }
+
     const resolveAdapter = async <T>(adapter: T | Promise<T>): Promise<T> => {
       if (adapter && typeof (adapter as any).then === "function") {
         return await (adapter as unknown as Promise<T>);
@@ -173,6 +244,11 @@ export class ProductionOrchestrator {
       activeAgentSpeakers: new Set<AgentSpeaker>(),
       duckingActive: false,
       humanSpeaking: false,
+      useEnhancedFeatures,
+      enhancedVad,
+      enhancedCommandRouter,
+      audioProcessor,
+      bargeInManager,
     };
   }
 
@@ -231,12 +307,17 @@ export class ProductionOrchestrator {
     const buffer = Buffer.isBuffer(chunk)
       ? chunk
       : Buffer.from(chunk instanceof ArrayBuffer ? new Uint8Array(chunk) : chunk);
-    
-    context.vad.processAudio(buffer);
-    
+
+    // Use enhanced VAD if enabled, otherwise fall back to standard VAD
+    if (context.useEnhancedFeatures && context.enhancedVad) {
+      context.enhancedVad.processAudio(buffer);
+    } else {
+      context.vad.processAudio(buffer);
+    }
+
     // Send to STT if available
     // For now, this is a placeholder - will be wired when STT is fully integrated
-    
+
     // Record audio (for "you" speaker)
     await context.recorder.writeAudioChunk("you", buffer);
   }
@@ -310,6 +391,88 @@ export class ProductionOrchestrator {
       default:
         context.pendingTargets = undefined;
         break;
+    }
+  }
+
+  // Enhanced feature handlers
+
+  private handleEnhancedHumanSpeechStart(sessionId: string, confidence: number): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context || !context.useEnhancedFeatures) return;
+
+    console.info(`[orchestrator-enhanced] human speech start (confidence: ${confidence.toFixed(2)})`);
+
+    // Delegate to barge-in manager for coordinated handling
+    context.bargeInManager?.onSpeechStart("you", confidence);
+
+    // Also trigger standard handler for compatibility
+    this.handleHumanSpeechStart(sessionId);
+  }
+
+  private handleEnhancedHumanSpeechEnd(sessionId: string, confidence: number): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context || !context.useEnhancedFeatures) return;
+
+    console.info(`[orchestrator-enhanced] human speech end (confidence: ${confidence.toFixed(2)})`);
+
+    // Delegate to barge-in manager
+    context.bargeInManager?.onSpeechEnd("you", confidence);
+
+    // Also trigger standard handler for compatibility
+    this.handleHumanSpeechEnd(sessionId);
+  }
+
+  private handleBargeInStart(
+    sessionId: string,
+    interrupter: SpeakerId,
+    interrupted: SpeakerId[]
+  ): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context) return;
+
+    console.info(`[orchestrator-enhanced] barge-in start: ${interrupter} interrupting ${interrupted.join(", ")}`);
+
+    // Stop interrupted speakers
+    for (const speaker of interrupted) {
+      if (speaker !== "you") {
+        void this.stopAgentPlayback(context, speaker as AgentSpeaker);
+      }
+    }
+
+    // Update orb states
+    this.updateOrbState(interrupter, "speaking", context);
+  }
+
+  private handleBargeInComplete(
+    sessionId: string,
+    interrupter: SpeakerId,
+    interrupted: SpeakerId[]
+  ): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context) return;
+
+    console.info(`[orchestrator-enhanced] barge-in complete: ${interrupter} interrupted ${interrupted.join(", ")}`);
+
+    // Log completion event
+    context.eventLogger.logBargeIn(sessionId, interrupter, interrupted);
+  }
+
+  private handleDuckingRequest(
+    sessionId: string,
+    speakers: AgentSpeaker[],
+    enable: boolean
+  ): void {
+    const context = this.activeSessions.get(sessionId);
+    if (!context || !context.audioProcessor) return;
+
+    console.info(`[orchestrator-enhanced] ducking ${enable ? "enabled" : "disabled"} for ${speakers.join(", ")}`);
+
+    if (enable) {
+      context.audioProcessor.startDucking(speakers);
+      context.duckingActive = true;
+    } else {
+      context.audioProcessor.stopDucking(speakers);
+      context.duckingActive = false;
     }
   }
 
@@ -431,7 +594,17 @@ export class ProductionOrchestrator {
       // Update orb state
       this.updateOrbState("you", "listening", context);
 
-      const command = context.commandRouter.route(text);
+      // Use enhanced command router if enabled, otherwise fall back to standard router
+      let command;
+      if (context.useEnhancedFeatures && context.enhancedCommandRouter) {
+        command = context.enhancedCommandRouter.route(text, context.enhancedCommandRouter.getContext());
+        if (command && command.fuzzyMatched) {
+          console.info(`[orchestrator-enhanced] fuzzy match: "${text}" -> "${command.matchedKeywords?.join(", ")}"`);
+        }
+      } else {
+        command = context.commandRouter.route(text);
+      }
+
       if (command) {
         this.handleCommand(context, command);
       }
@@ -451,13 +624,27 @@ export class ProductionOrchestrator {
     const context = this.activeSessions.get(sessionId);
     if (!context) return;
 
-    const processedChunk = context.duckingActive ? this.applyGain(audioChunk, this.duckingGain) : audioChunk;
+    // Use enhanced audio processor if enabled, otherwise fall back to simple gain
+    let processedChunk: Buffer;
+    if (context.useEnhancedFeatures && context.audioProcessor) {
+      // Enhanced processor handles smooth ducking with ramps
+      processedChunk = context.audioProcessor.processAudio(speaker, audioChunk);
+    } else {
+      // Fallback to simple gain-based ducking
+      processedChunk = context.duckingActive ? this.applyGain(audioChunk, this.duckingGain) : audioChunk;
+    }
+
     context.recorder.writeAudioChunk(speaker, processedChunk);
 
     if (!context.activeAgentSpeakers.has(speaker)) {
       context.activeAgentSpeakers.add(speaker);
       context.eventLogger.logTtsStart(sessionId, speaker, context.lastCommand?.remainder ?? "");
       this.updateOrbState(speaker, "speaking", context);
+
+      // Notify barge-in manager that agent started speaking
+      if (context.useEnhancedFeatures && context.bargeInManager) {
+        context.bargeInManager.onSpeechStart(speaker, 0.9);
+      }
     }
 
     context.eventLogger.logTtsChunk(sessionId, speaker, processedChunk.length);
@@ -470,6 +657,11 @@ export class ProductionOrchestrator {
     console.info(`[orchestrator] TTS complete for ${sessionId} (${speaker})`);
     context.eventLogger.logTtsComplete(sessionId, speaker);
     context.activeAgentSpeakers.delete(speaker);
+
+    // Notify barge-in manager that agent stopped speaking
+    if (context.useEnhancedFeatures && context.bargeInManager) {
+      context.bargeInManager.onSpeechEnd(speaker, 0.9);
+    }
 
     if (!context.humanSpeaking) {
       this.updateOrbState(speaker, "listening", context);
@@ -591,4 +783,10 @@ interface SessionContext {
   lastCommand?: CommandRouteResult;
   orbRestore?: Partial<Record<AgentSpeaker, OrbState>>;
   pendingTargets?: Set<AgentSpeaker>;
+  // Enhanced features
+  enhancedVad?: EnhancedVadDetector;
+  enhancedCommandRouter?: EnhancedCommandRouter;
+  audioProcessor?: MultiChannelAudioProcessor;
+  bargeInManager?: BargeInManager;
+  useEnhancedFeatures: boolean;
 }
