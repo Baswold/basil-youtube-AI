@@ -1,22 +1,42 @@
 import { promises as fs } from "node:fs";
 import { join } from "node:path";
 
-interface BriefingMetadata {
+/**
+ * Metadata extracted from briefing frontmatter
+ */
+export interface BriefingMetadata {
+  /** Episode title */
   title?: string;
+  /** Main topic of discussion */
   topic?: string;
+  /** Desired conversational tone (e.g., "casual", "formal", "debate") */
   tone?: string;
+  /** Key points that must be covered */
   mustCover?: string[];
+  /** Topics to avoid */
   avoidTopics?: string[];
+  /** Target duration in minutes */
   targetDuration?: number;
 }
 
-interface ParsedBriefing {
+/**
+ * Complete briefing with metadata and generated prompts
+ */
+export interface ParsedBriefing {
+  /** Extracted metadata from frontmatter */
   metadata: BriefingMetadata;
+  /** Main briefing content (markdown body) */
   content: string;
+  /** System prompt tailored for Claude */
   systemPromptClaude: string;
+  /** System prompt tailored for guest AI */
   systemPromptGuest: string;
 }
 
+/**
+ * Loads and parses episode briefing files (markdown with YAML frontmatter)
+ * Generates customized system prompts for Claude and guest AIs
+ */
 export class BriefingLoader {
   private briefingsDir: string;
 
@@ -24,6 +44,12 @@ export class BriefingLoader {
     this.briefingsDir = briefingsDir;
   }
 
+  /**
+   * Loads a briefing file and generates system prompts
+   *
+   * @param briefingPath - Path to briefing file (relative to briefingsDir or absolute)
+   * @returns Parsed briefing with metadata and prompts
+   */
   async load(briefingPath: string): Promise<ParsedBriefing> {
     const fullPath = briefingPath.startsWith("/") 
       ? briefingPath 

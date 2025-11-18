@@ -19,15 +19,44 @@ import type { TtsAdapter } from "./adapters/interfaces.js";
 import { VadDetector } from "./services/vad-detector.js";
 import { CommandRouter, type CommandRouteResult } from "./services/command-router.js";
 
+/**
+ * Audio ducking configuration constants
+ * Ducking reduces agent audio volume when the human speaker is detected
+ */
+const DUCKING_DB_REDUCTION = -12; // Reduce agent volume by 12 decibels
+const DEFAULT_THINKING_DURATION_MS = 30_000; // 30 seconds default thinking time
+const MAX_CAPTION_HISTORY = 20; // Maximum number of captions to keep in memory
+const CAPTION_SNAPSHOT_LIMIT = 6; // Number of captions to include in state snapshots
+
+/**
+ * Configuration options for the ProductionOrchestrator
+ */
 interface OrchestratorConfig {
+  /** Whether to use real external adapters (STT/TTS/LLM) or mocks */
   useRealAdapters?: boolean;
+  /** Unique identifier for the current episode/session */
   episodeId?: string;
+  /** Path to the briefing markdown file */
   briefingPath?: string;
+  /** Directory where recordings and logs are stored */
   recordingDir?: string;
 }
 
+/**
+ * Agent speaker types (excludes human "you" speaker)
+ */
 type AgentSpeaker = Extract<SpeakerId, "claude" | "guest">;
 
+/**
+ * ProductionOrchestrator manages the three-way conversation between Basil (human),
+ * Claude AI, and a guest AI. It handles:
+ * - WebSocket session management
+ * - Voice Activity Detection (VAD) for barge-in/interruption
+ * - Audio ducking (reducing agent volume when human speaks)
+ * - Command routing (addressing specific agents)
+ * - Thinking mode (shared screen state for agent reflection)
+ * - Recording and event logging
+ */
 export class ProductionOrchestrator {
   private autopilot = false;
   private orbStates: Record<SpeakerId, OrbState> = {
@@ -44,7 +73,12 @@ export class ProductionOrchestrator {
   private activeSessions = new Map<string, SessionContext>();
   private sharedScreen: SharedScreenState = { mode: "conversation" };
   private thinkingTimer?: NodeJS.Timeout;
-  private duckingGain = Math.pow(10, -12 / 20);
+  /**
+   * Gain multiplier for audio ducking
+   * Converts decibels to linear gain: 10^(dB/20)
+   * -12 dB = 0.251 (approximately 25% volume)
+   */
+  private duckingGain = Math.pow(10, DUCKING_DB_REDUCTION / 20);
 
   constructor(config: OrchestratorConfig = {}) {
     this.config = {
@@ -69,20 +103,26 @@ export class ProductionOrchestrator {
     console.info(`[orchestrator] initialized with episode: ${this.config.episodeId}`);
   }
 
+  /**
+   * Registers a new WebSocket client session
+   * Creates session context, initializes services, and sets up event handlers
+   *
+   * @param socket - Socket.IO socket connection from the client
+   */
   async register(socket: Socket<ClientToServerEvents, ServerToClientEvents>): Promise<void> {
     const sessionId = socket.id;
     console.info(`[orchestrator] registering session ${sessionId}`);
 
     try {
-      // Create session context
+      // Create session context with recorder, event logger, and VAD
       const context = await this.createSession(sessionId, socket);
       this.activeSessions.set(sessionId, context);
 
-      // Send initial state
+      // Send initial state to client
       socket.emit("server.ack", "connected");
       socket.emit("state.snapshot", this.snapshot());
 
-      // Set up event handlers
+      // Set up event handlers for client messages
       this.setupSocketHandlers(socket, context);
 
       console.info(`[orchestrator] session ${sessionId} registered successfully`);
@@ -241,14 +281,22 @@ export class ProductionOrchestrator {
     await context.recorder.writeAudioChunk("you", buffer);
   }
 
+  /**
+   * Handles the start of human speech detected by VAD
+   * Implements barge-in: interrupts agent playback and activates audio ducking
+   *
+   * @param sessionId - Session identifier
+   */
   private handleHumanSpeechStart(sessionId: string): void {
     const context = this.activeSessions.get(sessionId);
     if (!context || context.humanSpeaking) return;
 
+    // Mark human as speaking and activate ducking
     context.humanSpeaking = true;
     context.duckingActive = true;
     context.eventLogger.logVadSpeechStart(sessionId, "you");
 
+    // Barge-in: Stop any currently speaking agents
     const interrupted = Array.from(context.activeAgentSpeakers);
     if (interrupted.length > 0) {
       context.eventLogger.logBargeIn(sessionId, "you", interrupted);
@@ -258,27 +306,38 @@ export class ProductionOrchestrator {
       context.activeAgentSpeakers.clear();
     }
 
+    // Save current orb states for restoration later
     context.orbRestore = {
       claude: this.orbStates.claude,
       guest: this.orbStates.guest,
     };
 
+    // Update orb visualizations
     this.updateOrbState("you", "speaking", context);
     for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
       this.updateOrbState(agent, "muted", context);
     }
   }
 
+  /**
+   * Handles the end of human speech detected by VAD
+   * Deactivates ducking and restores agent orb states
+   *
+   * @param sessionId - Session identifier
+   */
   private handleHumanSpeechEnd(sessionId: string): void {
     const context = this.activeSessions.get(sessionId);
     if (!context || !context.humanSpeaking) return;
 
+    // Mark human as done speaking and deactivate ducking
     context.humanSpeaking = false;
     context.duckingActive = false;
     context.eventLogger.logVadSpeechEnd(sessionId, "you");
 
+    // Return human orb to listening state
     this.updateOrbState("you", "listening", context);
 
+    // Restore agent orb states to their previous state (before barge-in)
     const restore = context.orbRestore;
     if (restore) {
       for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
@@ -287,6 +346,7 @@ export class ProductionOrchestrator {
       }
       context.orbRestore = undefined;
     } else {
+      // No saved state, default to listening
       for (const agent of ["claude", "guest"] as AgentSpeaker[]) {
         this.updateOrbState(agent, "listening", context);
       }
@@ -313,9 +373,13 @@ export class ProductionOrchestrator {
     }
   }
 
+  /**
+   * Enters thinking mode where an agent pauses to reflect before responding
+   * Updates shared screen, sets orb states, and starts countdown timer
+   */
   private enterThinkingMode(context: SessionContext, command: CommandRouteResult): void {
     const speaker = (command.targets[0] as AgentSpeaker) || "claude";
-    const durationMs = command.durationMs ?? 30_000;
+    const durationMs = command.durationMs ?? DEFAULT_THINKING_DURATION_MS;
     const startedAt = Date.now();
     const endsAt = startedAt + durationMs;
 
@@ -485,8 +549,11 @@ export class ProductionOrchestrator {
     context.activeAgentSpeakers.delete(speaker);
   }
 
+  /**
+   * Adds a caption to the history, maintaining a rolling window of recent captions
+   */
   private addCaption(caption: CaptionPayload): void {
-    this.captions = [caption, ...this.captions].slice(0, 20);
+    this.captions = [caption, ...this.captions].slice(0, MAX_CAPTION_HISTORY);
   }
 
   private updateOrbState(
@@ -536,10 +603,14 @@ export class ProductionOrchestrator {
     }
   }
 
+  /**
+   * Creates a snapshot of the current orchestrator state for clients
+   * Includes orb states, recent captions, autopilot status, and shared screen mode
+   */
   private snapshot(): OrchestratorStateSnapshot {
     return {
       orbStates: { ...this.orbStates },
-      captions: [...this.captions].slice(0, 6),
+      captions: [...this.captions].slice(0, CAPTION_SNAPSHOT_LIMIT),
       autopilot: this.autopilot,
       sharedScreen: this.sharedScreen,
     };
@@ -547,24 +618,34 @@ export class ProductionOrchestrator {
 
   async shutdown(): Promise<void> {
     console.info("[orchestrator] shutting down...");
-    
+
     for (const [sessionId, _] of this.activeSessions) {
       await this.cleanupSession(sessionId);
     }
 
     console.info("[orchestrator] shutdown complete");
   }
-}
 
+  /**
+   * Applies gain to an audio buffer by scaling the amplitude of 16-bit PCM samples.
+   * Used for ducking (reducing agent volume when human speaks).
+   *
+   * @param buffer - Raw audio buffer containing 16-bit little-endian PCM samples
+   * @param gain - Gain multiplier (e.g., 0.25 for -12dB reduction)
+   * @returns New buffer with gain applied, clamped to valid 16-bit range
+   */
   private applyGain(buffer: Buffer, gain: number): Buffer {
     const scaled = Buffer.allocUnsafe(buffer.length);
 
+    // Process audio in 16-bit chunks (2 bytes per sample)
     for (let i = 0; i < buffer.length; i += 2) {
+      // Handle odd-length buffers gracefully
       if (i + 1 >= buffer.length) {
         scaled[i] = buffer[i];
         continue;
       }
 
+      // Read 16-bit sample, apply gain, and clamp to valid range
       const sample = buffer.readInt16LE(i);
       let value = Math.round(sample * gain);
       value = Math.max(-32768, Math.min(32767, value));
@@ -573,22 +654,42 @@ export class ProductionOrchestrator {
 
     return scaled;
   }
+}
 
+/**
+ * Context for a single WebSocket session, tracking all session-specific state
+ */
 interface SessionContext {
+  /** Unique session identifier (socket.id) */
   sessionId: string;
+  /** WebSocket connection to the client */
   socket: Socket<ClientToServerEvents, ServerToClientEvents>;
+  /** Event logger for this session */
   eventLogger: EventLogger;
+  /** Audio/caption recorder for this session */
   recorder: RecorderService;
-  briefing?: any;
+  /** Loaded episode briefing (if provided) */
+  briefing?: ParsedBriefing;
+  /** Whether audio recording is active */
   isRecording: boolean;
+  /** Whether any participant is speaking */
   isSpeaking: boolean;
+  /** Voice Activity Detector for human speech */
   vad: VadDetector;
+  /** Command router for parsing user commands */
   commandRouter: CommandRouter;
+  /** TTS adapters for each agent */
   ttsAdapters: Partial<Record<AgentSpeaker, TtsAdapter>>;
+  /** Set of agents currently playing audio */
   activeAgentSpeakers: Set<AgentSpeaker>;
+  /** Whether audio ducking is currently active */
   duckingActive: boolean;
+  /** Whether human is currently speaking (VAD) */
   humanSpeaking: boolean;
+  /** Last parsed command from human */
   lastCommand?: CommandRouteResult;
+  /** Saved orb states before barge-in (for restoration) */
   orbRestore?: Partial<Record<AgentSpeaker, OrbState>>;
+  /** Agents targeted by the most recent command */
   pendingTargets?: Set<AgentSpeaker>;
 }

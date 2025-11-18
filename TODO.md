@@ -72,20 +72,30 @@
 - [x] Add test scripts to package.json
 - [x] Set up coverage reporting
 
-## Mid Term (Phase 2 Enhancements)
-- [ ] Flesh out barge-in logic with command routing and ducking control.
-  - [ ] Implement VAD-based interruption detection
-  - [ ] Add ducking functionality (reduce agent volume by 12 dB when human speaks)
-  - [ ] Create command routing system for addressing specific agents
-- [ ] Build thinking mode trigger handling and shared screen visual transitions.
-  - [ ] Implement thinking mode detection and trigger interception
-  - [ ] Add visual transition handling for shared screen states
-  - [ ] Create countdown timer for thinking mode
+## Mid Term (Phase 2 Enhancements) ✅
+- [x] Flesh out barge-in logic with command routing and ducking control.
+  - [x] Implement VAD-based interruption detection
+  - [x] Add ducking functionality (reduce agent volume by 12 dB when human speaks)
+  - [x] Create command routing system for addressing specific agents
+- [x] Build thinking mode trigger handling and shared screen visual transitions.
+  - [x] Implement thinking mode detection and trigger interception
+  - [x] Add visual transition handling for shared screen states
+  - [x] Create countdown timer for thinking mode
 - [x] Generate JSONL event logger and session metadata files.
   - [x] Implement comprehensive event logging
   - [x] Create session.yml metadata file generation
 - [x] Integrate UI captions with smooth transitions and speaker color coding.
 - [x] Add Autopilot toggle and Showrunner stub state machine.
+
+## Code Quality Improvements (Latest) ✅
+- [x] Fixed misplaced applyGain method in ProductionOrchestrator
+- [x] Extracted magic numbers into named constants (DUCKING_DB_REDUCTION, etc.)
+- [x] Added comprehensive JSDoc documentation to all backend classes
+- [x] Improved type safety - replaced `any` types with proper interfaces
+- [x] Exported and documented ParsedBriefing and BriefingMetadata types
+- [x] Enhanced CommandRouter with detailed method documentation
+- [x] Improved config.ts with organized sections and comments
+- [x] Added inline comments explaining complex algorithms (VAD, audio ducking, barge-in)
 
 ## Longer Term (Phase 3+)
 - [ ] Implement full Autopilot run-of-show with prompts and timing automation.
